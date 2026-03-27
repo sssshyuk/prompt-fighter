@@ -18,10 +18,8 @@ const MIME = {
   '.fbx': 'application/octet-stream',
 };
 
-// ── Runtime config (single-player / default) ──
-let currentProvider = process.env.DEFAULT_PROVIDER || 'gemini';
-let currentModel = process.env.DEFAULT_MODEL || 'gemini-2.5-flash';
-let currentApiKey = process.env.DEFAULT_API_KEY || '';
+// ── No server-side API key storage ──
+// All API keys are provided per-request from the client
 
 // ── Parameterized LLM Calls ──
 async function callGeminiWith(systemPrompt, userPrompt, model, apiKey) {
@@ -97,10 +95,6 @@ async function callLLMWith(systemPrompt, userPrompt, provider, model, apiKey) {
   return callGeminiWith(systemPrompt, userPrompt, model, apiKey);
 }
 
-async function callLLM(systemPrompt, userPrompt) {
-  return callLLMWith(systemPrompt, userPrompt, currentProvider, currentModel, currentApiKey);
-}
-
 // ── System Prompts ──
 const REFEREE_PROMPT = `너는 "프롬프트 파이터" 텍스트 배틀 게임의 심판이다.
 플레이어들이 서로 모욕적이고 자극적인 말로 싸우는 게임이다.
@@ -147,48 +141,33 @@ async function judgeText(text, type, provider, model, apiKey) {
   return { score: 50, comment: '판정 불가' };
 }
 
-// ── API Route Handlers (single-player, unchanged) ──
+// ── API Route Handlers (single-player) ──
+// Client sends { provider, model, apiKey } with every request
 async function handleAPI(req, res, urlPath) {
-  if (req.method === 'GET' && urlPath === '/api/settings') {
-    const masked = currentApiKey
-      ? currentApiKey.slice(0, 6) + '••••••••' + currentApiKey.slice(-4)
-      : '';
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ provider: currentProvider, model: currentModel, maskedKey: masked, hasKey: !!currentApiKey }));
-    return;
-  }
-
   let body = '';
   req.on('data', chunk => body += chunk);
   req.on('end', async () => {
     try {
       const params = JSON.parse(body);
+      const { provider, model, apiKey } = params;
       let result;
 
-      if (urlPath === '/api/settings') {
-        const { provider, model, apiKey } = params;
-        if (provider) currentProvider = provider;
-        if (model) currentModel = model;
-        if (apiKey !== undefined) currentApiKey = apiKey;
-        console.log(`[SETTINGS] provider=${currentProvider} model=${currentModel} key=${currentApiKey ? '***set***' : 'empty'}`);
-        result = { ok: true, provider: currentProvider, model: currentModel };
-
-      } else if (urlPath === '/api/judge') {
+      if (urlPath === '/api/judge') {
         const { text, type } = params;
-        result = await judgeText(text, type, currentProvider, currentModel, currentApiKey);
+        result = await judgeText(text, type, provider, model, apiKey);
 
       } else if (urlPath === '/api/opponent/attack') {
         const { context } = params;
         const prompt = context
           ? `상대가 "${context}"라고 했다. 더 독하게 공격해라.`
           : '게임 시작이다. 첫 공격을 해라. 상대를 도발하고 모욕해라.';
-        const text = await callLLM(GRANDMA_ATTACK_PROMPT, prompt);
+        const text = await callLLMWith(GRANDMA_ATTACK_PROMPT, prompt, provider, model, apiKey);
         result = { text: text.trim() };
 
       } else if (urlPath === '/api/opponent/defend') {
         const { attackText } = params;
         const prompt = `상대가 "${attackText}"라고 공격했다. 받아쳐라.`;
-        const text = await callLLM(GRANDMA_DEFEND_PROMPT, prompt);
+        const text = await callLLMWith(GRANDMA_DEFEND_PROMPT, prompt, provider, model, apiKey);
         result = { text: text.trim() };
       }
 
@@ -206,7 +185,7 @@ async function handleAPI(req, res, urlPath) {
 const server = http.createServer((req, res) => {
   const decoded = decodeURIComponent(req.url);
 
-  if ((req.method === 'POST' || req.method === 'GET') && decoded.startsWith('/api/')) {
+  if (req.method === 'POST' && decoded.startsWith('/api/')) {
     return handleAPI(req, res, decoded);
   }
 

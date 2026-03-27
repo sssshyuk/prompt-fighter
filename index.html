@@ -1697,14 +1697,16 @@ function selectMode(mode) {
 }
 
 function selectDifficulty(diff) {
+  if (!clientApiSettings.apiKey) {
+    alert('AI 설정에서 API Key를 먼저 입력해주세요! (우측 상단 AI 설정 버튼)');
+    return;
+  }
   state.difficulty = diff;
   setSettingsButtonVisible(false);
   document.getElementById('difficulty-screen').classList.add('hidden');
   if (assetsLoaded) {
-    // 재시작: 이미 로드됨, 바로 인트로
     playIntroSequence();
   } else {
-    // 첫 실행: 로딩 화면 표시
     document.getElementById('loading-screen').style.display = 'flex';
   }
 }
@@ -1712,14 +1714,27 @@ function selectDifficulty(diff) {
 function getDiff() { return DIFFICULTY[state.difficulty]; }
 
 // ═══════════════════════════════════════════════════════
-// AI API CALLS
+// CLIENT-SIDE API SETTINGS (used for single-player)
+// ═══════════════════════════════════════════════════════
+let clientApiSettings = {
+  provider: 'gemini',
+  model: 'gemini-2.5-flash',
+  apiKey: '',
+};
+
+function getApiPayload(extra) {
+  return { ...extra, provider: clientApiSettings.provider, model: clientApiSettings.model, apiKey: clientApiSettings.apiKey };
+}
+
+// ═══════════════════════════════════════════════════════
+// AI API CALLS (include API settings in every request)
 // ═══════════════════════════════════════════════════════
 async function aiJudge(text, type) {
   try {
     const resp = await fetch('/api/judge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, type })
+      body: JSON.stringify(getApiPayload({ text, type }))
     });
     const data = await resp.json();
     return { score: Math.max(1, Math.min(100, data.score || 50)), comment: data.comment || '' };
@@ -1734,7 +1749,7 @@ async function aiOpponentAttack(context) {
     const resp = await fetch('/api/opponent/attack', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context })
+      body: JSON.stringify(getApiPayload({ context }))
     });
     const data = await resp.json();
     return data.text || '이 할미가 말문이 막혔다니!';
@@ -1749,7 +1764,7 @@ async function aiOpponentDefend(attackText) {
     const resp = await fetch('/api/opponent/defend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ attackText })
+      body: JSON.stringify(getApiPayload({ attackText }))
     });
     const data = await resp.json();
     return data.text || '그게 공격이냐, 간지러워!';
@@ -2723,21 +2738,12 @@ const PROVIDER_MODELS = {
 let settingsState = { provider: 'gemini', model: 'gemini-2.5-flash', apiKey: '' };
 
 async function openSettings() {
-  try {
-    const resp = await fetch('/api/settings');
-    const data = await resp.json();
-    settingsState.provider = data.provider;
-    settingsState.model = data.model;
-    document.getElementById('settings-key-input').value = '';
-    document.getElementById('settings-key-input').placeholder = data.hasKey ? data.maskedKey : 'API Key 입력...';
-    renderSettingsProvider(data.provider);
-    renderSettingsModels(data.provider, data.model);
-    updateSettingsStatus(data.hasKey);
-  } catch(e) {
-    renderSettingsProvider(settingsState.provider);
-    renderSettingsModels(settingsState.provider, settingsState.model);
-    updateSettingsStatus(false);
-  }
+  settingsState.provider = clientApiSettings.provider;
+  settingsState.model = clientApiSettings.model;
+  document.getElementById('settings-key-input').value = clientApiSettings.apiKey;
+  renderSettingsProvider(clientApiSettings.provider);
+  renderSettingsModels(clientApiSettings.provider, clientApiSettings.model);
+  updateSettingsStatus(!!clientApiSettings.apiKey);
   document.getElementById('settings-modal').classList.remove('hidden');
 }
 
@@ -2776,26 +2782,19 @@ function updateSettingsStatus(hasKey) {
   }
 }
 
-async function saveSettings() {
+function saveSettings() {
   const provider = settingsState.provider;
   const model = document.getElementById('settings-model-select').value;
   const apiKey = document.getElementById('settings-key-input').value.trim();
   const btn = document.querySelector('.settings-btn-save');
-  btn.textContent = 'SAVING...';
-  try {
-    const body = { provider, model };
-    if (apiKey) body.apiKey = apiKey;
-    await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    btn.textContent = 'SAVED!';
-    setTimeout(() => { btn.textContent = 'SAVE'; closeSettings(); }, 800);
-  } catch(e) {
-    btn.textContent = 'ERROR';
-    setTimeout(() => { btn.textContent = 'SAVE'; }, 1500);
-  }
+
+  clientApiSettings.provider = provider;
+  clientApiSettings.model = model;
+  if (apiKey) clientApiSettings.apiKey = apiKey;
+
+  updateSettingsStatus(!!clientApiSettings.apiKey);
+  btn.textContent = 'SAVED!';
+  setTimeout(() => { btn.textContent = 'SAVE'; closeSettings(); }, 600);
 }
 
 // key visibility toggle
