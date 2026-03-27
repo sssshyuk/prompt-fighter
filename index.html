@@ -2070,6 +2070,19 @@ function selectMode(mode) {
   }
 }
 
+function showSinglePlayerMatchedScreen(callback) {
+  const matchedScreen = document.getElementById('matched-screen');
+  document.getElementById('match-p1-name').textContent = 'PLAYER';
+  document.getElementById('match-p2-name').textContent = '👵 할머니';
+  document.getElementById('match-p1-engine').textContent = clientApiSettings.provider.toUpperCase() + ' / ' + clientApiSettings.model;
+  document.getElementById('match-p2-engine').textContent = 'AI / ' + (state.difficulty || 'NORMAL').toUpperCase();
+  matchedScreen.classList.remove('hidden');
+  setTimeout(() => {
+    matchedScreen.classList.add('hidden');
+    callback();
+  }, 3500);
+}
+
 function selectDifficulty(diff) {
   if (!clientApiSettings.apiKey) {
     openSettings();
@@ -2079,7 +2092,7 @@ function selectDifficulty(diff) {
   setSettingsButtonVisible(false);
   document.getElementById('difficulty-screen').classList.add('hidden');
   if (assetsLoaded) {
-    playIntroSequence();
+    showSinglePlayerMatchedScreen(() => playIntroSequence());
   } else {
     document.getElementById('loading-screen').style.display = 'flex';
   }
@@ -2417,7 +2430,11 @@ function onAllLoaded() {
   setTimeout(() => {
     loadingScreen.classList.add('hidden');
     setTimeout(() => loadingScreen.style.display = 'none', 500);
-    playIntroSequence();
+    if (mpState.active) {
+      playIntroSequence();
+    } else {
+      showSinglePlayerMatchedScreen(() => playIntroSequence());
+    }
   }, 300);
 }
 
