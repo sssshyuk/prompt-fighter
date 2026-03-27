@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>FBX Test</title>
+<style>body{margin:0;background:#111;color:#0f0;font-family:monospace;} canvas{display:block;} #log{position:fixed;top:0;left:0;padding:10px;z-index:10;font-size:14px;max-height:100vh;overflow-y:auto;}</style>
+</head><body>
+<div id="log">Loading...</div>
+<canvas id="c"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script>
+const log = document.getElementById('log');
+function addLog(msg) { log.innerHTML += '<br>' + msg; console.log(msg); }
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x222222);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0, 3, 10);
+camera.lookAt(0,1,0);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const dl = new THREE.DirectionalLight(0xffffff, 1);
+dl.position.set(5,10,5);
+scene.add(dl);
+
+// Grid helper
+scene.add(new THREE.GridHelper(10, 10));
+
+const loader = new THREE.FBXLoader();
+const files = [
+  'P1%20Ready.fbx',
+  'P2%20Ready.fbx',
+  'taunt_idle.fbx'
+];
+
+let xOffset = -4;
+files.forEach(file => {
+  const x = xOffset;
+  xOffset += 4;
+  addLog(`Loading: ${file}...`);
+  loader.load(file, (model) => {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    addLog(`OK: ${file} - size: ${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`);
+    addLog(`  children: ${model.children.length}, animations: ${model.animations.length}`);
+
+    // Count meshes
+    let meshCount = 0;
+    model.traverse(c => { if(c.isMesh) meshCount++; });
+    addLog(`  meshes: ${meshCount}`);
+
+    // Auto-scale to 3 units tall
+    const height = size.y || 1;
+    model.scale.setScalar(3.0 / height);
+
+    // Recompute bounds after scale
+    const box2 = new THREE.Box3().setFromObject(model);
+    model.position.set(x, -box2.min.y, 0);
+
+    scene.add(model);
+    addLog(`  Placed at x=${x}, scale=${(3.0/height).toFixed(4)}`);
+
+    // Play animation if any
+    if (model.animations.length > 0) {
+      const mixer = new THREE.AnimationMixer(model);
+      mixer.clipAction(model.animations[0]).play();
+      mixers.push(mixer);
+    }
+  },
+  (progress) => {
+    if(progress.total) addLog(`  Progress ${file}: ${Math.round(progress.loaded/progress.total*100)}%`);
+  },
+  (err) => {
+    addLog(`ERROR: ${file} - ${err.message || err}`);
+  });
+});
+
+const mixers = [];
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  mixers.forEach(m => m.update(dt));
+  renderer.render(scene, camera);
+}
+animate();
+</script></body></html>

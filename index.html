@@ -1,0 +1,3184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGARI FIGHTERS - 3D Octagon Text Battle</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-family: 'Material Symbols Outlined';
+  }
+  /* ── Stitch Design System ── */
+  :root {
+    --cl-primary: #70b1ff;
+    --cl-secondary: #ff716b;
+    --cl-tertiary: #ffdd7c;
+    --cl-bg: #0c0c1d;
+    --cl-surface-low: #121223;
+    --cl-surface: #18182b;
+    --cl-surface-high: #1d1d33;
+    --cl-surface-highest: #24233b;
+    --cl-outline: #474659;
+    --cl-on-surface: #e6e3fb;
+    --cl-on-variant: #aba9bf;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    overflow: hidden; background: var(--cl-bg);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: var(--cl-on-surface);
+  }
+  .font-headline { font-family: 'Space Grotesk', sans-serif; }
+
+  /* ── Shared: scanline + HUD utils ── */
+  .scanline-overlay {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background:
+      linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%),
+      linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
+    background-size: 100% 2px, 3px 100%;
+    opacity: .15;
+  }
+  .hud-corner-tl {
+    position: absolute; top: 40px; left: 40px;
+    width: 80px; height: 80px;
+    border-left: 2px solid rgba(112,177,255,.2);
+    border-top: 2px solid rgba(112,177,255,.2);
+    pointer-events: none;
+  }
+  .hud-corner-br {
+    position: absolute; bottom: 40px; right: 40px;
+    width: 80px; height: 80px;
+    border-right: 2px solid rgba(255,113,107,.2);
+    border-bottom: 2px solid rgba(255,113,107,.2);
+    pointer-events: none;
+  }
+  .hud-side-bar {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, transparent 0%, var(--cl-primary) 30%, var(--cl-primary) 70%, transparent 100%);
+    opacity: .3; pointer-events: none;
+  }
+
+  /* ── TITLE SCREEN ── */
+  #title-screen {
+    position: fixed; inset: 0; z-index: 60;
+    background: var(--cl-bg); overflow: hidden;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+  }
+  #title-screen.hidden { display: none; }
+
+  .title-cinematic-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 40%, rgba(112,177,255,.08) 0%, transparent 70%),
+      radial-gradient(ellipse 100% 80% at 50% 100%, rgba(255,113,107,.05) 0%, transparent 60%),
+      linear-gradient(180deg, var(--cl-bg) 0%, #080818 100%);
+  }
+  .title-data-tl {
+    position: absolute; top: 80px; left: 48px;
+    font-family: 'Space Grotesk', monospace;
+    font-size: 10px; letter-spacing: .2em; color: rgba(112,177,255,.4);
+    line-height: 2; z-index: 2; pointer-events: none;
+    text-transform: uppercase;
+  }
+  .title-data-br {
+    position: absolute; bottom: 80px; right: 48px;
+    font-family: 'Space Grotesk', monospace;
+    font-size: 10px; letter-spacing: .2em; color: rgba(112,177,255,.4);
+    line-height: 2; z-index: 2; pointer-events: none;
+    text-transform: uppercase; text-align: right;
+  }
+  .title-vert-bar {
+    position: absolute; right: 48px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 4px;
+    z-index: 2; pointer-events: none;
+  }
+  .title-vert-bar span {
+    display: block;
+    background: var(--cl-primary); opacity: .4;
+  }
+
+  /* center logo block */
+  .title-center {
+    position: relative; z-index: 3; text-align: center;
+  }
+  .title-eyebrow {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .6em; color: var(--cl-primary);
+    opacity: .7; text-transform: uppercase; margin-bottom: 16px;
+  }
+  #title-logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(72px, 11vw, 130px);
+    font-weight: 900; letter-spacing: -.02em; line-height: 1;
+    color: var(--cl-on-surface);
+    text-shadow: 0 0 20px rgba(112,177,255,.6), 0 0 60px rgba(112,177,255,.2);
+  }
+  #title-logo span {
+    background: linear-gradient(90deg, var(--cl-primary), #3e96f0);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 0 30px rgba(112,177,255,.8));
+  }
+  .title-divider {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px; margin: 24px 0;
+  }
+  .title-divider-line {
+    height: 1px; width: 80px;
+    background: linear-gradient(90deg, transparent, rgba(112,177,255,.4));
+  }
+  .title-divider-line.rev {
+    background: linear-gradient(270deg, transparent, rgba(112,177,255,.4));
+  }
+  .title-divider-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .3em;
+    color: var(--cl-tertiary); text-transform: uppercase;
+    text-shadow: 0 0 12px rgba(255,221,124,.5);
+  }
+
+  /* Press Start button */
+  #press-any-btn {
+    position: relative; margin-top: 48px;
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 40px; background: transparent;
+    border: none; cursor: pointer; transition: all .2s;
+  }
+  #press-any-btn::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background: var(--cl-primary);
+    box-shadow: 0 0 12px rgba(112,177,255,.8);
+  }
+  #press-any-btn .bolt { color: var(--cl-primary); font-size: 20px; }
+  #press-any-btn .label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px; font-weight: 700; letter-spacing: .4em;
+    color: var(--cl-on-surface); text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(112,177,255,.6);
+    animation: pressBlink 1.4s ease-in-out infinite;
+  }
+  @keyframes pressBlink {
+    0%, 100% { opacity: 1; } 50% { opacity: .3; }
+  }
+  #press-any-btn:hover .label { text-shadow: 0 0 30px rgba(112,177,255,1); }
+  .title-sync-text {
+    margin-top: 20px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; letter-spacing: .3em; color: rgba(255,255,255,.25);
+    text-transform: uppercase;
+  }
+
+  /* title footer */
+  .title-footer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding: 24px 48px; z-index: 3;
+  }
+  .title-badge {
+    display: inline-block; padding: 4px 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+  }
+  .title-badge.gold {
+    background: var(--cl-surface-highest); color: var(--cl-tertiary);
+    border: 1px solid rgba(255,221,124,.2);
+  }
+  .title-badge.ver {
+    background: var(--cl-surface-low); color: rgba(112,177,255,.6);
+    border: 1px solid rgba(112,177,255,.1);
+  }
+  .title-progress-bar {
+    width: 200px; height: 4px; background: var(--cl-surface-low); overflow: hidden;
+    margin-top: 8px;
+  }
+  .title-progress-fill {
+    height: 100%; width: 35%; background: var(--cl-primary);
+    box-shadow: 0 0 8px rgba(112,177,255,.5);
+  }
+  .title-footer-links {
+    display: flex; gap: 24px; align-items: center;
+  }
+  .title-footer-link {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; letter-spacing: .3em; color: rgba(255,255,255,.3);
+    text-transform: uppercase; cursor: pointer; text-decoration: none;
+    transition: color .2s;
+  }
+  .title-footer-link:hover { color: var(--cl-primary); }
+
+  /* ── MODE SELECT SCREEN ── */
+  #mode-screen {
+    position: fixed; inset: 0; z-index: 58;
+    background: var(--cl-bg); overflow: hidden;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 48px; padding-top: 100px;
+  }
+  #mode-screen.hidden { display: none; }
+
+  .mode-phase-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 12px; margin-bottom: 8px;
+    background: rgba(255,221,124,.08);
+    border-left: 2px solid var(--cl-tertiary);
+  }
+  .mode-phase-tag span {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .3em;
+    color: var(--cl-tertiary); text-transform: uppercase;
+  }
+  .mode-main-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(48px, 7vw, 80px); font-weight: 900;
+    letter-spacing: -.02em; color: var(--cl-tertiary); text-transform: uppercase;
+    text-shadow: 0 0 15px rgba(255,221,124,.6); margin-bottom: 8px;
+  }
+  .mode-subtitle-row {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 48px;
+  }
+  .mode-subtitle-line { height: 1px; width: 48px; background: rgba(112,177,255,.3); }
+  .mode-subtitle-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .3em;
+    color: var(--cl-on-variant); text-transform: uppercase;
+  }
+
+  /* asymmetric grid */
+  .mode-cards-row {
+    display: flex; gap: 24px; width: 100%; max-width: 960px; align-items: stretch;
+  }
+
+  /* VS AI card — larger */
+  .mode-card-ai {
+    flex: 7; position: relative; cursor: pointer;
+    height: 400px; overflow: hidden;
+    transition: all .3s;
+  }
+  .mode-card-ai-border {
+    position: absolute; inset: 0;
+    border: 2px solid var(--cl-primary);
+    transition: box-shadow .3s;
+  }
+  .mode-card-ai:hover .mode-card-ai-border {
+    box-shadow: 0 0 40px rgba(112,177,255,.4);
+  }
+  .mode-card-ai-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(112,177,255,.08) 0%, var(--cl-surface-low) 100%);
+  }
+  .mode-card-ai-hud {
+    position: absolute; top: 16px; right: 16px; text-align: right;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    color: rgba(112,177,255,.6); text-transform: uppercase; line-height: 1.8;
+  }
+  .mode-card-ai-body {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 32px;
+    background: linear-gradient(0deg, rgba(18,18,35,.95) 60%, transparent 100%);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(112,177,255,.15);
+  }
+  .mode-card-ai-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px; font-weight: 900; letter-spacing: -.02em;
+    color: var(--cl-primary); text-transform: uppercase; line-height: 1;
+    margin-bottom: 4px;
+  }
+  .mode-card-ai-sub {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .2em;
+    color: var(--cl-on-variant); text-transform: uppercase; margin-bottom: 16px;
+  }
+  .mode-card-ai-tags {
+    display: flex; gap: 8px; margin-bottom: 24px;
+  }
+  .mode-tag {
+    padding: 2px 8px;
+    background: rgba(112,177,255,.15); color: var(--cl-primary);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+  }
+  .mode-card-ai-btn {
+    width: 100%; padding: 16px;
+    background: var(--cl-primary); color: #002f57;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px; font-weight: 900; letter-spacing: .3em; text-transform: uppercase;
+    border: none; cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+  }
+  .mode-card-ai-btn:hover { filter: brightness(1.1); }
+  .mode-card-ai-icon {
+    position: absolute; bottom: 140px; right: 32px;
+    color: var(--cl-primary); opacity: .3; font-size: 80px;
+    font-family: 'Material Symbols Outlined';
+  }
+
+  /* VS HUMAN card */
+  .mode-card-human {
+    flex: 5; position: relative; cursor: pointer;
+    height: 400px; overflow: hidden;
+    transition: all .3s;
+  }
+  .mode-card-human:hover { transform: translateY(-4px); }
+  .mode-card-human:hover .mode-card-human-border {
+    box-shadow: 0 0 40px rgba(255,113,107,.3);
+  }
+  .mode-card-human-border {
+    position: absolute; inset: 0;
+    border: 2px solid rgba(255,113,107,.3);
+    transition: box-shadow .3s;
+  }
+  .mode-card-human-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,113,107,.08) 0%, var(--cl-surface-low) 100%);
+  }
+  .mode-card-human-body {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 32px;
+    background: rgba(29,29,51,.92);
+    border-top: 1px solid rgba(71,70,89,.2);
+  }
+  .mode-card-human-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px; font-weight: 900; letter-spacing: -.02em;
+    color: var(--cl-secondary); text-transform: uppercase; margin-bottom: 4px;
+  }
+  .mode-card-human-sub {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; letter-spacing: .2em;
+    color: var(--cl-on-variant); text-transform: uppercase; margin-bottom: 20px;
+  }
+  .mode-card-lock-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; margin-bottom: 16px;
+    border-top: 1px solid rgba(71,70,89,.15);
+    border-bottom: 1px solid rgba(71,70,89,.15);
+  }
+  .mode-card-lock-icon { color: var(--cl-secondary); font-size: 20px; }
+  .mode-card-lock-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: .2em;
+    color: var(--cl-secondary); text-transform: uppercase;
+  }
+  .mode-card-human-btn {
+    width: 100%; padding: 16px; text-align: center;
+    background: var(--cl-secondary); border: none; color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px; font-weight: 900; letter-spacing: .3em; text-transform: uppercase;
+    cursor: pointer; transition: all .2s;
+  }
+  .mode-card-human-btn:hover { filter: brightness(1.1); }
+  .mode-card-human-icon {
+    position: absolute; bottom: 165px; right: 24px;
+    color: rgba(255,113,107,.2); font-size: 64px;
+    font-family: 'Material Symbols Outlined';
+  }
+
+  /* mode footer */
+  .mode-footer {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 32px; width: 100%; max-width: 960px;
+    margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid rgba(71,70,89,.15);
+  }
+  .mode-footer-item { display: flex; align-items: center; gap: 16px; }
+  .mode-footer-icon-box {
+    width: 40px; height: 40px; border: 1px solid rgba(112,177,255,.3);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .mode-footer-icon-box .material-symbols-outlined { color: var(--cl-primary); font-size: 18px; }
+  .mode-footer-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; letter-spacing: .3em; color: var(--cl-outline); text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .mode-footer-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; font-weight: 900; letter-spacing: .2em;
+    color: var(--cl-on-surface); text-transform: uppercase;
+  }
+  .mode-footer-value.gold { color: var(--cl-tertiary); }
+  .mode-footer-integrity { display: flex; gap: 4px; margin-top: 4px; }
+  .mode-integrity-block { width: 12px; height: 4px; background: var(--cl-primary); }
+  .mode-integrity-block.dim { background: rgba(112,177,255,.25); }
+
+  /* ── DIFFICULTY SELECT SCREEN ── */
+  #difficulty-screen {
+    position: fixed; inset: 0; z-index: 55;
+    background: var(--cl-bg); overflow: hidden;
+    display: flex; flex-direction: column;
+    padding: 0;
+  }
+  #difficulty-screen.hidden { display: none; }
+
+  .diff-layout {
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  /* Sidebar */
+  .diff-sidebar {
+    width: 220px; flex-shrink: 0;
+    background: rgba(18,18,35,.92); backdrop-filter: blur(8px);
+    border-right: 1px solid rgba(71,70,89,.2);
+    display: flex; flex-direction: column; padding-top: 88px;
+  }
+  .diff-sidebar-sys {
+    padding: 0 16px 24px;
+  }
+  .diff-sidebar-sys-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; letter-spacing: .3em; color: rgba(112,177,255,.4); margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .diff-sidebar-sys-bar { width: 32px; height: 2px; background: var(--cl-primary); }
+  .diff-nav { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
+  .diff-nav-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 10px; cursor: pointer; transition: all .2s;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+    color: rgba(112,177,255,.5);
+  }
+  .diff-nav-item:hover { background: var(--cl-surface-highest); color: var(--cl-primary); }
+  .diff-nav-item.active {
+    background: var(--cl-primary); color: var(--cl-bg);
+    box-shadow: 0 0 20px rgba(112,177,255,.4);
+    transform: translateX(4px);
+  }
+  .diff-nav-item .material-symbols-outlined { font-size: 18px; }
+  .diff-sidebar-footer { margin-top: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .diff-sidebar-btn {
+    width: 100%; padding: 12px; text-align: center;
+    background: var(--cl-surface-highest); border: 1px solid rgba(112,177,255,.25);
+    color: var(--cl-primary); cursor: pointer; transition: all .2s;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 900; letter-spacing: .2em; text-transform: uppercase;
+  }
+  .diff-sidebar-btn:hover { background: var(--cl-primary); color: var(--cl-bg); }
+
+  /* Main area */
+  .diff-main {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 48px; padding-top: 112px; position: relative; overflow: hidden;
+  }
+  .diff-header { margin-bottom: 40px; }
+  .diff-header-tag {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+  }
+  .diff-header-accent { width: 8px; height: 24px; background: var(--cl-primary); }
+  .diff-header-sys {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: .3em;
+    color: var(--cl-primary); text-transform: uppercase;
+  }
+  .diff-main-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(36px, 5vw, 56px); font-weight: 900;
+    letter-spacing: -.02em; color: var(--cl-on-surface);
+    text-transform: uppercase; font-style: italic; line-height: 1;
+  }
+  .diff-main-title em { color: var(--cl-primary); font-style: normal; }
+  .diff-main-desc {
+    margin-top: 12px; font-size: 13px; color: var(--cl-on-variant); line-height: 1.6; max-width: 480px;
+  }
+
+  /* 4-card grid */
+  .diff-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 20px; flex: 1; max-height: 440px;
+  }
+  .diff-card {
+    position: relative; display: flex; flex-direction: column;
+    background: var(--cl-surface-low); padding: 24px; cursor: pointer;
+    border: 1px solid; cursor: pointer;
+    transition: all .3s; overflow: hidden;
+  }
+  .diff-card-num {
+    position: absolute; top: 12px; right: 12px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .2em;
+    opacity: .3; transition: opacity .3s;
+  }
+  .diff-card:hover .diff-card-num { opacity: 1; }
+  .diff-card-icon-wrap { margin-bottom: 32px; }
+  .diff-card-icon-wrap .material-symbols-outlined { font-size: 40px; }
+  .diff-card-body { margin-top: auto; }
+  .diff-card-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight: 900; letter-spacing: -.01em;
+    color: var(--cl-on-surface); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .diff-card-bar-wrap {
+    width: 100%; height: 2px; background: var(--cl-surface-highest); margin-bottom: 12px;
+  }
+  .diff-card-bar { height: 100%; }
+  .diff-card-stats { display: flex; flex-direction: column; gap: 3px; }
+  .diff-card-stat {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+  }
+  .diff-card-hover-bg {
+    position: absolute; inset: 0; opacity: 0; transition: opacity .3s; pointer-events: none;
+  }
+  .diff-card:hover .diff-card-hover-bg { opacity: 1; }
+
+  /* Per-card color themes */
+  .diff-card.beginner { border-color: rgba(112,177,255,.2); }
+  .diff-card.beginner:hover { border-color: var(--cl-primary); box-shadow: 0 0 20px rgba(112,177,255,.25); transform: translateY(-8px); }
+  .diff-card.beginner .diff-card-num,
+  .diff-card.beginner .diff-card-icon-wrap .material-symbols-outlined,
+  .diff-card.beginner .diff-card-stat { color: var(--cl-primary); }
+  .diff-card.beginner .diff-card-bar { background: var(--cl-primary); width: 25%; }
+  .diff-card.beginner .diff-card-hover-bg { background: rgba(112,177,255,.04); }
+
+  .diff-card.medium {
+    border-color: rgba(34,197,94,.6); border-width: 2px;
+    box-shadow: 0 0 20px rgba(34,197,94,.25); transform: translateY(-8px);
+  }
+  .diff-card.medium .diff-card-top-accent {
+    position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #22c55e;
+  }
+  .diff-card.medium .diff-card-num { color: #22c55e; opacity: 1; }
+  .diff-card.medium .diff-card-icon-wrap .material-symbols-outlined { color: #22c55e; }
+  .diff-card.medium .diff-card-stat { color: #22c55e; }
+  .diff-card.medium .diff-card-bar { background: #22c55e; width: 50%; }
+  .diff-card.medium .diff-card-hover-bg { background: rgba(34,197,94,.06); opacity: 1; }
+  .diff-card.medium .diff-recommended {
+    display: inline-block; margin-left: 8px;
+    padding: 1px 6px; background: rgba(34,197,94,.1);
+    border: 1px solid rgba(34,197,94,.3); color: #22c55e;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px; font-weight: 900; letter-spacing: .2em; text-transform: uppercase;
+  }
+
+  .diff-card.hard { border-color: rgba(251,146,60,.2); }
+  .diff-card.hard:hover { border-color: #fb923c; box-shadow: 0 0 20px rgba(251,146,60,.25); transform: translateY(-8px); }
+  .diff-card.hard .diff-card-num,
+  .diff-card.hard .diff-card-icon-wrap .material-symbols-outlined,
+  .diff-card.hard .diff-card-stat { color: #fb923c; }
+  .diff-card.hard .diff-card-bar { background: #fb923c; width: 75%; }
+  .diff-card.hard .diff-card-hover-bg { background: rgba(251,146,60,.04); }
+
+  .diff-card.hell { border-color: rgba(255,113,107,.2); overflow: hidden; }
+  .diff-card.hell:hover { border-color: var(--cl-secondary); box-shadow: 0 0 30px rgba(255,113,107,.35); transform: translateY(-8px); }
+  .diff-card.hell .diff-card-num,
+  .diff-card.hell .diff-card-icon-wrap .material-symbols-outlined,
+  .diff-card.hell .diff-card-stat { color: var(--cl-secondary); }
+  .diff-card.hell .diff-card-bar { background: var(--cl-secondary); width: 100%; box-shadow: 0 0 8px rgba(255,113,107,.7); }
+  .diff-card.hell .diff-card-hover-bg { background: rgba(255,113,107,.05); }
+
+  /* diff footer */
+  .diff-footer {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-top: 32px; padding-top: 24px;
+    border-top: 1px solid rgba(71,70,89,.15);
+  }
+  .diff-stats { display: flex; gap: 48px; }
+  .diff-stat-item { display: flex; flex-direction: column; }
+  .diff-stat-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .2em;
+    color: var(--cl-primary); text-transform: uppercase; margin-bottom: 4px;
+  }
+  .diff-stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px; font-weight: 900; letter-spacing: -.01em;
+    color: var(--cl-on-surface);
+  }
+  .diff-deploy-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 48px; background: var(--cl-primary); border: none; cursor: pointer;
+    color: #002f57; font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 900; letter-spacing: .2em; text-transform: uppercase;
+    transition: all .2s;
+  }
+  .diff-deploy-btn:hover { filter: brightness(1.1); transform: scale(1.02); }
+  .diff-deploy-btn .material-symbols-outlined { font-size: 18px; }
+
+  /* diff ambient glows */
+  .diff-glow-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(112,177,255,.04) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .diff-glow-corner {
+    position: absolute; bottom: -100px; right: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(255,113,107,.04) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .diff-hud-bottom {
+    position: absolute; bottom: 24px; left: 48px;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 1; pointer-events: none;
+  }
+  .diff-hud-bars { display: flex; gap: 3px; align-items: flex-end; }
+  .diff-hud-bars span { display: block; background: rgba(112,177,255,.4); }
+  .diff-hud-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px; letter-spacing: .4em;
+    color: rgba(112,177,255,.4); text-transform: uppercase; margin-left: 8px;
+  }
+
+  /* 3D Viewport */
+  #viewport { width: 100vw; height: 100vh; display: block; }
+
+  /* ── HP Bars ── */
+  #hud-top {
+    position: fixed; top: 0; left: 0; width: 100%;
+    display: flex; justify-content: center; align-items: center; gap: 24px;
+    padding: 18px 32px; z-index: 10;
+    background: linear-gradient(180deg, rgba(0,0,0,.8) 0%, transparent 100%);
+  }
+  .hp-section { flex: 1; max-width: 420px; }
+  .hp-section.right { text-align: right; }
+  .hp-label {
+    font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+    margin-bottom: 6px; text-shadow: 0 0 8px;
+  }
+  .hp-label.player { color: #4fa4ff; }
+  .hp-label.pc { color: #ff4f4f; }
+  .hp-bar-outer {
+    width: 100%; height: 24px; background: #111; border-radius: 4px;
+    overflow: hidden; border: 1px solid #555; position: relative;
+    box-shadow: 0 0 10px rgba(0,0,0,.5);
+  }
+  .hp-bar-inner {
+    height: 100%; transition: width .6s ease; border-radius: 3px;
+  }
+  .hp-bar-inner.player { background: linear-gradient(90deg, #1a6dff, #4fa4ff); box-shadow: 0 0 12px rgba(79,164,255,.5); }
+  .hp-bar-inner.pc { background: linear-gradient(90deg, #ff4f4f, #ff1a1a); float: right; box-shadow: 0 0 12px rgba(255,79,79,.5); }
+  .hp-text {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 12px; font-weight: 700; text-shadow: 0 0 4px #000;
+  }
+  #vs-badge {
+    font-size: 32px; font-weight: 900; color: #ffcc00;
+    text-shadow: 0 0 20px rgba(255,204,0,.6), 0 0 40px rgba(255,204,0,.3);
+  }
+
+  /* ── Turn Indicator ── */
+  #turn-indicator {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+    font-size: 16px; font-weight: 700; letter-spacing: 3px;
+    padding: 6px 20px; border-radius: 20px; z-index: 10;
+    transition: all .3s ease;
+  }
+  #turn-indicator.player-turn { background: rgba(79,164,255,.25); border: 1px solid #4fa4ff; color: #4fa4ff; }
+  #turn-indicator.pc-turn { background: rgba(255,79,79,.25); border: 1px solid #ff4f4f; color: #ff4f4f; }
+  #turn-indicator.animating { background: rgba(255,204,0,.25); border: 1px solid #ffcc00; color: #ffcc00; }
+
+  /* ── Log Window ── */
+  #log-panel {
+    position: fixed; bottom: 80px; left: 16px; width: 380px; max-height: 320px;
+    background: rgba(0,0,0,.8); border: 1px solid #333; border-radius: 8px;
+    overflow-y: auto; padding: 12px; z-index: 10; font-size: 13px; line-height: 1.6;
+    backdrop-filter: blur(8px);
+  }
+  #log-panel::-webkit-scrollbar { width: 4px; }
+  #log-panel::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+  .log-entry { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #222; }
+  .log-entry .turn-num { color: #888; font-size: 11px; }
+  .log-entry .attacker { font-weight: 700; }
+  .log-entry .attacker.player { color: #4fa4ff; }
+  .log-entry .attacker.pc { color: #ff4f4f; }
+  .log-entry .score { color: #ffcc00; font-weight: 700; }
+  .log-entry .damage { color: #ff6b6b; font-weight: 700; }
+  .log-entry .speech { color: #ccc; font-style: italic; }
+
+  /* ── Input Area ── */
+  #input-area {
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 24px;
+    background: linear-gradient(0deg, rgba(0,0,0,.9) 0%, transparent 100%);
+    z-index: 10;
+  }
+  #text-input {
+    flex: 1; padding: 12px 16px; font-size: 15px;
+    background: rgba(26,26,46,.9); color: #fff; border: 1px solid #444;
+    border-radius: 8px; outline: none; transition: border-color .2s;
+    backdrop-filter: blur(4px);
+  }
+  #text-input:focus { border-color: #4fa4ff; box-shadow: 0 0 12px rgba(79,164,255,.3); }
+  #text-input:disabled { opacity: .4; cursor: not-allowed; }
+  .action-btn {
+    padding: 12px 24px; font-size: 14px; font-weight: 700;
+    border: none; border-radius: 8px; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 1px; transition: all .2s;
+  }
+  .action-btn:disabled { opacity: .3; cursor: not-allowed; }
+  #btn-attack { background: #ff4f4f; color: #fff; box-shadow: 0 0 15px rgba(255,79,79,.4); }
+  #btn-attack:hover:not(:disabled) { background: #ff2020; transform: scale(1.05); box-shadow: 0 0 25px rgba(255,79,79,.6); }
+  #btn-defend { background: #4fa4ff; color: #fff; box-shadow: 0 0 15px rgba(79,164,255,.4); }
+  #btn-defend:hover:not(:disabled) { background: #2080ff; transform: scale(1.05); box-shadow: 0 0 25px rgba(79,164,255,.6); }
+
+  /* ── Damage Popup ── */
+  .damage-popup {
+    position: fixed; z-index: 20; font-size: 56px; font-weight: 900;
+    pointer-events: none; animation: popUp 1.2s ease-out forwards;
+    text-shadow: 0 0 30px rgba(255,0,0,.8), 0 2px 4px rgba(0,0,0,.8);
+  }
+  @keyframes popUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    50% { opacity: 1; transform: translateY(-40px) scale(1.3); }
+    100% { opacity: 0; transform: translateY(-100px) scale(1.5); }
+  }
+
+  /* ── FX Overlay (attack/defend effects) ── */
+  .fx-overlay {
+    position: fixed; z-index: 18; pointer-events: none;
+    width: 350px; height: 350px;
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: screen;
+    animation: fxPop .6s ease-out forwards;
+  }
+  @keyframes fxPop {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(0.3); }
+    30% { opacity: 1; transform: translate(-50%,-50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(1.5); }
+  }
+  .fx-overlay.critical {
+    width: 600px; height: 600px;
+    animation: fxCritical .8s ease-out forwards;
+  }
+  @keyframes fxCritical {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(0.2); }
+    20% { opacity: 1; transform: translate(-50%,-50%) scale(1.5); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(2); }
+  }
+  .fx-overlay.shield {
+    animation: fxShield .8s ease-out forwards;
+  }
+  @keyframes fxShield {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(0.5); }
+    30% { opacity: .9; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(1.1); }
+  }
+
+  /* ── Loading Screen ── */
+  #loading-screen {
+    position: fixed; inset: 0; z-index: 50;
+    background: #0a0a0a;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center; gap: 20px;
+    transition: opacity 0.5s;
+  }
+  #loading-screen.hidden { opacity: 0; pointer-events: none; }
+  #loading-title {
+    font-size: 36px; font-weight: 900; letter-spacing: 6px;
+    color: #ffcc00; text-shadow: 0 0 20px rgba(255,204,0,.5);
+  }
+  #loading-bar-outer {
+    width: 320px; height: 8px; background: #222; border-radius: 4px; overflow: hidden;
+  }
+  #loading-bar-inner {
+    height: 100%; width: 0%; background: linear-gradient(90deg, #4fa4ff, #ffcc00);
+    border-radius: 4px; transition: width 0.3s;
+  }
+  #loading-status { font-size: 13px; color: #888; letter-spacing: 1px; }
+
+  /* ── Round Start Announce ── */
+  #announce {
+    position: fixed; inset: 0; z-index: 25; pointer-events: none;
+    display: flex; justify-content: center; align-items: center;
+  }
+  #announce .text {
+    font-size: 100px; font-weight: 900; letter-spacing: 8px;
+    text-transform: uppercase; opacity: 0;
+    text-shadow: 0 0 40px, 0 0 80px, 0 4px 8px rgba(0,0,0,.8);
+  }
+  @keyframes announceIn {
+    0% { opacity: 0; transform: scale(3); }
+    30% { opacity: 1; transform: scale(1); }
+    70% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0; transform: scale(0.8); }
+  }
+
+  /* ── Screen Flash ── */
+  #screen-flash {
+    position: fixed; inset: 0; z-index: 17; pointer-events: none;
+    opacity: 0; transition: opacity .05s;
+  }
+
+  /* ── Game Over Overlay ── */
+  #game-over {
+    display: none; position: fixed; inset: 0; z-index: 30;
+    background: rgba(0,0,0,.85); justify-content: center; align-items: center;
+    flex-direction: column; gap: 20px;
+    background-image: url('bg_victory.png');
+    background-size: cover; background-position: center;
+  }
+  #game-over.visible { display: flex; }
+  #game-over h1 { font-size: 64px; text-shadow: 0 0 40px, 0 0 80px; letter-spacing: 4px; }
+  #game-over h1.win { color: #4fa4ff; }
+  #game-over h1.lose { color: #ff4f4f; }
+  #game-over-sub { font-size: 20px; color: #ddd; text-shadow: 0 0 10px rgba(0,0,0,.8); }
+  #restart-btn {
+    padding: 14px 40px; font-size: 18px; font-weight: 700;
+    background: #ffcc00; color: #000; border: none; border-radius: 8px;
+    cursor: pointer; text-transform: uppercase;
+    box-shadow: 0 0 20px rgba(255,204,0,.5);
+  }
+  #restart-btn:hover { background: #ffd633; transform: scale(1.05); box-shadow: 0 0 30px rgba(255,204,0,.7); }
+
+  /* ── Shared Top Header (Mode + Difficulty screens) ── */
+  .screen-header {
+    position: fixed; top: 0; left: 0; width: 100%;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px; z-index: 100;
+    background: rgba(12,12,29,.85); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(71,70,89,.15);
+    box-shadow: 0 0 20px rgba(112,177,255,.06);
+  }
+  .screen-header-brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 900; letter-spacing: -.02em;
+    color: var(--cl-primary); text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(112,177,255,.5);
+  }
+  .screen-header-nav {
+    display: flex; align-items: center; gap: 24px;
+  }
+  .screen-header-nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .2em;
+    color: rgba(112,177,255,.5); text-transform: uppercase;
+    text-decoration: none; transition: color .2s;
+  }
+  .screen-header-nav a:hover { color: var(--cl-primary); }
+  .screen-header-nav a.active { color: var(--cl-primary); }
+  .screen-header-icons {
+    display: flex; gap: 16px; color: var(--cl-primary); align-items: center;
+  }
+  .screen-header-icons .material-symbols-outlined { font-size: 18px; opacity: .7; }
+  .screen-header-divider {
+    width: 1px; height: 16px; background: rgba(71,70,89,.4);
+  }
+
+  /* ── Settings Button ── */
+  #settings-btn {
+    position: fixed; top: 14px; right: 20px; z-index: 110;
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    background: rgba(12,12,29,.85); backdrop-filter: blur(12px);
+    border: 1px solid rgba(112,177,255,.25); border-radius: 6px;
+    color: rgba(112,177,255,.7); cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+    transition: all .2s;
+  }
+  #settings-btn:hover { border-color: var(--cl-primary); color: var(--cl-primary); box-shadow: 0 0 12px rgba(112,177,255,.2); }
+  #settings-btn .material-symbols-outlined { font-size: 16px; }
+  #settings-btn.hidden { display: none; }
+
+  /* ── Settings Modal ── */
+  #settings-modal {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(4,4,15,.88); backdrop-filter: blur(8px);
+    display: flex; justify-content: center; align-items: center;
+  }
+  #settings-modal.hidden { display: none; }
+  .settings-panel {
+    width: 540px; max-width: 95vw;
+    background: var(--cl-surface-low);
+    border: 1px solid rgba(112,177,255,.2);
+    border-radius: 4px;
+    box-shadow: 0 0 60px rgba(112,177,255,.08), 0 24px 48px rgba(0,0,0,.6);
+    overflow: hidden;
+  }
+  .settings-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(71,70,89,.2);
+    background: rgba(12,12,29,.6);
+  }
+  .settings-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 900; letter-spacing: .25em;
+    color: var(--cl-primary); text-transform: uppercase;
+  }
+  .settings-close {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 4px; cursor: pointer;
+    color: rgba(112,177,255,.5); transition: all .2s;
+    background: none; border: none;
+  }
+  .settings-close:hover { background: rgba(112,177,255,.1); color: var(--cl-primary); }
+  .settings-close .material-symbols-outlined { font-size: 18px; }
+  .settings-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* Provider tabs */
+  .settings-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px; font-weight: 700; letter-spacing: .3em;
+    color: rgba(112,177,255,.45); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .provider-tabs { display: flex; gap: 8px; }
+  .provider-tab {
+    flex: 1; padding: 10px 8px; text-align: center; cursor: pointer;
+    background: var(--cl-surface); border: 1px solid rgba(71,70,89,.3);
+    border-radius: 4px; transition: all .2s;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    color: rgba(112,177,255,.4); text-transform: uppercase;
+  }
+  .provider-tab:hover { border-color: rgba(112,177,255,.4); color: rgba(112,177,255,.7); }
+  .provider-tab.active { background: rgba(112,177,255,.1); border-color: var(--cl-primary); color: var(--cl-primary); }
+  .provider-tab .tab-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+  /* Model select */
+  .settings-select {
+    width: 100%; padding: 11px 14px;
+    background: var(--cl-surface); border: 1px solid rgba(71,70,89,.4);
+    border-radius: 4px; color: var(--cl-on-surface);
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px;
+    appearance: none; cursor: pointer; transition: border-color .2s;
+  }
+  .settings-select:focus { outline: none; border-color: var(--cl-primary); }
+  .select-wrap { position: relative; }
+  .select-wrap::after {
+    content: 'expand_more'; font-family: 'Material Symbols Outlined';
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: rgba(112,177,255,.5); pointer-events: none; font-size: 18px;
+  }
+
+  /* API key input */
+  .key-wrap { position: relative; }
+  .settings-input {
+    width: 100%; padding: 11px 42px 11px 14px;
+    background: var(--cl-surface); border: 1px solid rgba(71,70,89,.4);
+    border-radius: 4px; color: var(--cl-on-surface);
+    font-family: 'Space Grotesk', monospace; font-size: 13px;
+    transition: border-color .2s; box-sizing: border-box;
+  }
+  .settings-input:focus { outline: none; border-color: var(--cl-primary); }
+  .settings-input::placeholder { color: rgba(112,177,255,.2); }
+  .key-toggle {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: rgba(112,177,255,.4); transition: color .2s; display: flex;
+  }
+  .key-toggle:hover { color: var(--cl-primary); }
+  .key-toggle .material-symbols-outlined { font-size: 18px; }
+
+  /* Status badge */
+  .settings-status {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-radius: 4px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .1em;
+  }
+  .settings-status.ok { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.25); color: #22c55e; }
+  .settings-status.warn { background: rgba(255,113,107,.08); border: 1px solid rgba(255,113,107,.25); color: #ff716b; }
+  .settings-status .material-symbols-outlined { font-size: 15px; }
+
+  /* Footer */
+  .settings-footer {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 16px 24px; border-top: 1px solid rgba(71,70,89,.15);
+    background: rgba(12,12,29,.4);
+  }
+  .settings-btn-cancel {
+    padding: 10px 20px; border-radius: 4px; cursor: pointer;
+    background: none; border: 1px solid rgba(71,70,89,.4);
+    color: rgba(112,177,255,.5);
+    font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+    transition: all .2s;
+  }
+  .settings-btn-cancel:hover { border-color: rgba(112,177,255,.4); color: var(--cl-primary); }
+  .settings-btn-save {
+    padding: 10px 28px; border-radius: 4px; cursor: pointer;
+    background: var(--cl-primary); border: none;
+    color: var(--cl-bg);
+    font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 900; letter-spacing: .15em; text-transform: uppercase;
+    transition: all .2s;
+  }
+  .settings-btn-save:hover { filter: brightness(1.15); }
+
+  /* ── Nickname Screen ── */
+  #nickname-screen {
+    position: fixed; inset: 0; z-index: 56;
+    background: var(--cl-bg); overflow: hidden;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 48px;
+  }
+  #nickname-screen.hidden { display: none; }
+  .nick-center {
+    display: flex; flex-direction: column; align-items: center; gap: 24px;
+    width: 100%; max-width: 480px;
+  }
+  .nick-phase-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 12px;
+    background: rgba(255,113,107,.08);
+    border-left: 2px solid var(--cl-secondary);
+  }
+  .nick-phase-tag span {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .3em;
+    color: var(--cl-secondary); text-transform: uppercase;
+  }
+  .nick-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(36px, 5vw, 56px); font-weight: 900;
+    letter-spacing: -.02em; color: var(--cl-secondary); text-transform: uppercase;
+    text-shadow: 0 0 15px rgba(255,113,107,.6);
+  }
+  .nick-subtitle {
+    font-size: 13px; color: var(--cl-on-variant); text-align: center; line-height: 1.6;
+  }
+  .nick-input {
+    width: 100%; padding: 16px 20px;
+    background: var(--cl-surface); border: 2px solid rgba(255,113,107,.3);
+    border-radius: 4px; color: var(--cl-on-surface);
+    font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700;
+    letter-spacing: .1em; text-align: center; text-transform: uppercase;
+    transition: border-color .2s; outline: none;
+  }
+  .nick-input:focus { border-color: var(--cl-secondary); box-shadow: 0 0 20px rgba(255,113,107,.2); }
+  .nick-input::placeholder { color: rgba(255,113,107,.25); text-transform: none; font-weight: 400; }
+  .nick-api-section {
+    width: 100%; padding: 20px; background: var(--cl-surface-low);
+    border: 1px solid rgba(71,70,89,.3); display: flex; flex-direction: column; gap: 16px;
+  }
+  .nick-api-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .3em;
+    color: var(--cl-primary); text-transform: uppercase;
+  }
+  .nick-provider-tabs { display: flex; gap: 6px; }
+  .nick-provider-tab {
+    flex: 1; padding: 8px; text-align: center; cursor: pointer;
+    background: var(--cl-surface); border: 1px solid rgba(71,70,89,.3);
+    border-radius: 4px; transition: all .2s;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    color: rgba(112,177,255,.4); text-transform: uppercase;
+  }
+  .nick-provider-tab:hover { border-color: rgba(112,177,255,.4); color: rgba(112,177,255,.7); }
+  .nick-provider-tab.active { background: rgba(112,177,255,.1); border-color: var(--cl-primary); color: var(--cl-primary); }
+  .nick-select, .nick-key-input {
+    width: 100%; padding: 10px 14px;
+    background: var(--cl-surface); border: 1px solid rgba(71,70,89,.4);
+    border-radius: 4px; color: var(--cl-on-surface);
+    font-family: 'Space Grotesk', sans-serif; font-size: 12px;
+    outline: none; transition: border-color .2s;
+  }
+  .nick-select:focus, .nick-key-input:focus { border-color: var(--cl-primary); }
+  .nick-key-input::placeholder { color: rgba(112,177,255,.2); }
+  .nick-find-btn {
+    width: 100%; padding: 18px;
+    background: var(--cl-secondary); border: none; cursor: pointer;
+    color: #fff; font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px; font-weight: 900; letter-spacing: .3em; text-transform: uppercase;
+    transition: all .2s; position: relative; overflow: hidden;
+  }
+  .nick-find-btn:hover { filter: brightness(1.15); transform: scale(1.02); }
+  .nick-find-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; filter: none; }
+  .nick-back-btn {
+    padding: 10px 20px; background: none;
+    border: 1px solid rgba(71,70,89,.4); border-radius: 4px;
+    color: var(--cl-on-variant); cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+    transition: all .2s;
+  }
+  .nick-back-btn:hover { border-color: var(--cl-primary); color: var(--cl-primary); }
+
+  /* ── Lobby Screen ── */
+  #lobby-screen {
+    position: fixed; inset: 0; z-index: 57;
+    background: var(--cl-bg); overflow: hidden;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 48px;
+  }
+  #lobby-screen.hidden { display: none; }
+  .lobby-center { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+  .lobby-spinner {
+    width: 60px; height: 60px;
+    border: 3px solid rgba(255,113,107,.15);
+    border-top-color: var(--cl-secondary);
+    border-radius: 50%;
+    animation: lobbySpin 1s linear infinite;
+  }
+  @keyframes lobbySpin { to { transform: rotate(360deg); } }
+  .lobby-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px; font-weight: 900; letter-spacing: .2em;
+    color: var(--cl-secondary); text-transform: uppercase;
+  }
+  .lobby-status {
+    font-size: 14px; color: var(--cl-on-variant); text-align: center; line-height: 1.6;
+  }
+  .lobby-dots::after {
+    content: ''; animation: lobbyDots 1.5s infinite;
+  }
+  @keyframes lobbyDots {
+    0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; }
+  }
+  .lobby-cancel-btn {
+    padding: 12px 32px;
+    border: 1px solid rgba(255,113,107,.3); border-radius: 4px;
+    background: none; color: var(--cl-secondary); cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+    transition: all .2s;
+  }
+  .lobby-cancel-btn:hover { border-color: var(--cl-secondary); background: rgba(255,113,107,.1); }
+
+  /* matched overlay */
+  .lobby-matched {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .lobby-matched-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px; font-weight: 900; letter-spacing: .1em;
+    color: var(--cl-tertiary); text-transform: uppercase;
+    text-shadow: 0 0 30px rgba(255,221,124,.6);
+    animation: matchPulse 0.6s ease-out;
+  }
+  @keyframes matchPulse {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .lobby-vs-row {
+    display: flex; align-items: center; gap: 24px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px; font-weight: 900; letter-spacing: .1em;
+  }
+  .lobby-vs-name { color: var(--cl-primary); }
+  .lobby-vs-name.opponent { color: var(--cl-secondary); }
+  .lobby-vs-badge { color: var(--cl-tertiary); font-size: 32px; }
+
+  /* ── Speech Bubble ── */
+  .speech-bubble {
+    position: fixed; z-index: 15; pointer-events: none;
+    max-width: 260px; padding: 10px 14px;
+    border-radius: 12px; font-size: 13px; font-weight: 600; line-height: 1.4;
+    text-align: center; transform: translate(-50%, -100%);
+    animation: bubbleIn .3s ease-out forwards;
+    backdrop-filter: blur(4px);
+  }
+  .speech-bubble::after {
+    content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+    border-left: 8px solid transparent; border-right: 8px solid transparent;
+  }
+  .speech-bubble.player {
+    background: rgba(26,109,255,.85); color: #fff; border: 1px solid #4fa4ff;
+    box-shadow: 0 0 15px rgba(79,164,255,.3);
+  }
+  .speech-bubble.player::after { border-top: 8px solid rgba(26,109,255,.85); }
+  .speech-bubble.pc {
+    background: rgba(255,34,34,.85); color: #fff; border: 1px solid #ff4f4f;
+    box-shadow: 0 0 15px rgba(255,79,79,.3);
+  }
+  .speech-bubble.pc::after { border-top: 8px solid rgba(255,34,34,.85); }
+  @keyframes bubbleIn {
+    0% { opacity: 0; transform: translate(-50%, -90%) scale(0.7); }
+    100% { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+  }
+  @keyframes bubbleOut {
+    0% { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -110%) scale(0.7); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Screen Flash -->
+<div id="screen-flash"></div>
+
+<!-- ═══════════ SETTINGS BUTTON (global) ═══════════ -->
+<button id="settings-btn" onclick="openSettings()">
+  <span class="material-symbols-outlined">settings</span>
+  AI 설정
+</button>
+
+<!-- ═══════════ SETTINGS MODAL ═══════════ -->
+<div id="settings-modal" class="hidden">
+  <div class="settings-panel">
+    <div class="settings-header">
+      <div class="settings-title">AI ENGINE CONFIG</div>
+      <button class="settings-close" onclick="closeSettings()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="settings-body">
+      <!-- Provider -->
+      <div>
+        <div class="settings-label">Provider</div>
+        <div class="provider-tabs">
+          <div class="provider-tab active" data-provider="gemini" onclick="renderSettingsProvider('gemini')">
+            <span class="tab-icon">✦</span>Gemini
+          </div>
+          <div class="provider-tab" data-provider="openai" onclick="renderSettingsProvider('openai')">
+            <span class="tab-icon">◈</span>OpenAI
+          </div>
+          <div class="provider-tab" data-provider="anthropic" onclick="renderSettingsProvider('anthropic')">
+            <span class="tab-icon">◆</span>Anthropic
+          </div>
+        </div>
+      </div>
+      <!-- Model -->
+      <div>
+        <div class="settings-label">Model</div>
+        <div class="select-wrap">
+          <select id="settings-model-select" class="settings-select"></select>
+        </div>
+      </div>
+      <!-- API Key -->
+      <div>
+        <div class="settings-label">API Key</div>
+        <div class="key-wrap">
+          <input id="settings-key-input" type="password" class="settings-input" placeholder="API Key 입력..." autocomplete="off" />
+          <button id="settings-key-toggle" class="key-toggle">
+            <span class="material-symbols-outlined">visibility</span>
+          </button>
+        </div>
+      </div>
+      <!-- Status -->
+      <div id="settings-status" class="settings-status warn">
+        <span class="material-symbols-outlined">warning</span> API Key가 없습니다
+      </div>
+    </div>
+    <div class="settings-footer">
+      <button class="settings-btn-cancel" onclick="closeSettings()">CANCEL</button>
+      <button class="settings-btn-save" onclick="saveSettings()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TITLE SCREEN ═══════════ -->
+<div id="title-screen">
+  <div class="title-cinematic-bg"></div>
+  <div class="scanline-overlay"></div>
+  <div class="hud-corner-tl"></div>
+  <div class="hud-corner-br"></div>
+  <div class="hud-side-bar"></div>
+
+  <!-- Peripheral data clusters -->
+  <div class="title-data-tl">
+    SYSTEM_STATUS: STABLE<br>
+    LATENCY: 12ms<br>
+    NEURAL_LINK: 98.4%
+  </div>
+  <div class="title-data-br">
+    BUILD_VERSION: 1.0.0<br>
+    REGION: KR_EAST_01<br>
+    ENCRYPTION: AES_256_ACTIVE
+  </div>
+
+  <!-- Vertical accent bar -->
+  <div class="title-vert-bar">
+    <span style="width:4px;height:80px;"></span>
+    <span style="width:4px;height:32px;opacity:.2;"></span>
+    <span style="width:4px;height:56px;opacity:.1;"></span>
+  </div>
+
+  <!-- Center content -->
+  <div class="title-center">
+    <div class="title-eyebrow">A NEW NEURAL FRONTIER</div>
+    <div id="title-logo" class="font-headline">
+      AGARI<br><span>FIGHTERS</span>
+    </div>
+    <div class="title-divider">
+      <div class="title-divider-line rev"></div>
+      <div class="title-divider-text">TACTICAL HUD ENABLED</div>
+      <div class="title-divider-line"></div>
+    </div>
+
+    <button id="press-any-btn">
+      <span class="bolt material-symbols-outlined">bolt</span>
+      <span class="label">PRESS START TO INITIALIZE</span>
+      <span class="bolt material-symbols-outlined">bolt</span>
+    </button>
+    <div class="title-sync-text">Synchronizing bio-metrics with decentralized neural network</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="title-footer">
+    <div style="display:flex;gap:8px;">
+      <div class="title-badge gold">PRESTIGE_EDITION</div>
+      <div class="title-badge ver">V1.0</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODE SELECT ═══════════ -->
+<div id="mode-screen" class="hidden">
+  <div class="scanline-overlay"></div>
+  <div class="hud-corner-tl"></div>
+  <div class="hud-corner-br"></div>
+
+  <!-- Top bar -->
+  <header class="screen-header">
+    <div class="screen-header-brand">AGARI FIGHTERS</div>
+  </header>
+
+  <!-- Header -->
+  <div class="mode-phase-tag">
+    <span>Phase 01: Initializing Combat</span>
+  </div>
+  <div class="mode-main-title font-headline">SELECT MODE</div>
+  <div class="mode-subtitle-row">
+    <div class="mode-subtitle-line"></div>
+    <div class="mode-subtitle-text">AGARI FIGHTERS CORE SYSTEMS</div>
+    <div class="mode-subtitle-line" style="background:linear-gradient(270deg,transparent,rgba(112,177,255,.3));"></div>
+  </div>
+
+  <!-- Cards -->
+  <div class="mode-cards-row">
+    <!-- VS AI — active -->
+    <div class="mode-card-ai" onclick="selectMode('ai')">
+      <div class="mode-card-ai-bg"></div>
+      <div class="mode-card-ai-border"></div>
+      <div class="mode-card-ai-hud">Status: Optimized<br>Latency: 0.02ms</div>
+      <div class="mode-card-ai-icon material-symbols-outlined" style="font-variation-settings:'FILL' 1;">smart_toy</div>
+      <div class="mode-card-ai-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <div class="mode-card-ai-title font-headline">VS AI</div>
+            <div class="mode-card-ai-sub">욕쟁이 할머니 AI와 텍스트 배틀</div>
+          </div>
+        </div>
+        <div class="mode-card-ai-tags">
+          <div class="mode-tag">Ranked</div>
+          <div class="mode-tag">Training</div>
+        </div>
+        <button class="mode-card-ai-btn font-headline">INITIALIZE PROTOCOL</button>
+      </div>
+    </div>
+
+    <!-- VS HUMAN — active -->
+    <div class="mode-card-human" onclick="selectMode('human')">
+      <div class="mode-card-human-bg"></div>
+      <div class="mode-card-human-border"></div>
+      <div class="mode-card-human-icon material-symbols-outlined" style="font-variation-settings:'FILL' 1;">person</div>
+      <div class="mode-card-human-body">
+        <div class="mode-card-human-title font-headline">VS HUMAN</div>
+        <div class="mode-card-human-sub">Online PvP Matchmaking</div>
+        <div class="mode-card-lock-row" style="border-color:rgba(255,113,107,.15);">
+          <span class="mode-card-lock-icon material-symbols-outlined" style="font-variation-settings:'FILL' 1;">wifi</span>
+          <span class="mode-card-lock-text font-headline">LIVE BATTLE</span>
+        </div>
+        <button class="mode-card-human-btn font-headline">ENTER ARENA</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════ NICKNAME SCREEN (Multiplayer) ═══════════ -->
+<div id="nickname-screen" class="hidden">
+  <div class="scanline-overlay"></div>
+  <div class="hud-corner-tl"></div>
+  <div class="hud-corner-br"></div>
+  <header class="screen-header">
+    <div class="screen-header-brand">AGARI FIGHTERS</div>
+  </header>
+  <div class="nick-center">
+    <div class="nick-phase-tag"><span>Phase 02: Identity Verification</span></div>
+    <div class="nick-title font-headline">ENTER CALLSIGN</div>
+    <div class="nick-subtitle">대전에 사용할 닉네임과 AI 설정을 입력하세요.<br>심판은 공격자의 API를 사용합니다.</div>
+    <input class="nick-input" id="nick-input" placeholder="닉네임 입력..." maxlength="12" autocomplete="off" />
+
+    <div class="nick-api-section">
+      <div class="nick-api-title">AI ENGINE (심판용)</div>
+      <div class="nick-provider-tabs" id="nick-provider-tabs">
+        <div class="nick-provider-tab active" data-provider="gemini" onclick="nickSelectProvider('gemini')">✦ Gemini</div>
+        <div class="nick-provider-tab" data-provider="openai" onclick="nickSelectProvider('openai')">◈ OpenAI</div>
+        <div class="nick-provider-tab" data-provider="anthropic" onclick="nickSelectProvider('anthropic')">◆ Anthropic</div>
+      </div>
+      <select class="nick-select" id="nick-model-select"></select>
+      <input class="nick-key-input" id="nick-key-input" type="password" placeholder="API Key 입력..." autocomplete="off" />
+    </div>
+
+    <button class="nick-find-btn" id="nick-find-btn" onclick="startMatchmaking()">FIND MATCH</button>
+    <button class="nick-back-btn" onclick="nickGoBack()">BACK</button>
+  </div>
+</div>
+
+<!-- ═══════════ LOBBY SCREEN (Matchmaking) ═══════════ -->
+<div id="lobby-screen" class="hidden">
+  <div class="scanline-overlay"></div>
+  <div class="hud-corner-tl"></div>
+  <div class="hud-corner-br"></div>
+  <header class="screen-header">
+    <div class="screen-header-brand">AGARI FIGHTERS</div>
+  </header>
+  <div class="lobby-center" id="lobby-content">
+    <div class="lobby-spinner"></div>
+    <div class="lobby-title">SEARCHING<span class="lobby-dots"></span></div>
+    <div class="lobby-status" id="lobby-status">상대를 찾고 있습니다...</div>
+    <button class="lobby-cancel-btn" onclick="cancelMatchmaking()">CANCEL</button>
+  </div>
+</div>
+
+<!-- ═══════════ DIFFICULTY SELECT ═══════════ -->
+<div id="difficulty-screen" class="hidden">
+  <!-- Top bar -->
+  <header class="screen-header">
+    <div class="screen-header-brand">AGARI FIGHTERS</div>
+  </header>
+
+  <div class="diff-layout">
+    <!-- Sidebar -->
+    <aside class="diff-sidebar">
+      <div class="diff-sidebar-sys">
+        <div class="diff-sidebar-sys-label">System Directory</div>
+        <div class="diff-sidebar-sys-bar"></div>
+      </div>
+      <nav class="diff-nav">
+        <div class="diff-nav-item active">
+          <span class="material-symbols-outlined">sports_kabaddi</span>
+          <span>Combat</span>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="diff-main">
+      <div class="scanline-overlay"></div>
+      <div class="diff-glow-center"></div>
+      <div class="diff-glow-corner"></div>
+
+      <!-- Header -->
+      <div class="diff-header" style="position:relative;z-index:1;">
+        <div class="diff-header-tag">
+          <div class="diff-header-accent"></div>
+          <div class="diff-header-sys font-headline">AGARI FIGHTERS // SYSTEM_v1.0</div>
+        </div>
+        <div class="diff-main-title font-headline">
+          SELECT <em>DIFFICULTY</em> LEVEL
+        </div>
+        <div class="diff-main-desc">
+          AI 신경망 파라미터를 조정합니다. 난이도가 높을수록 할머니의 전술적 예측 불가능성과 데미지가 증가합니다.
+        </div>
+      </div>
+
+      <!-- Cards -->
+      <div class="diff-grid" style="position:relative;z-index:1;" id="diff-cards-container">
+        <!-- BEGINNER -->
+        <div class="diff-card beginner" onclick="diffSelectCard('beginner', this)">
+          <div class="diff-card-hover-bg"></div>
+          <div class="diff-card-num font-headline">01</div>
+          <div class="diff-card-icon-wrap">
+            <span class="material-symbols-outlined">egg</span>
+          </div>
+          <div class="diff-card-body">
+            <div class="diff-card-name font-headline">BEGINNER</div>
+            <div class="diff-card-bar-wrap"><div class="diff-card-bar"></div></div>
+            <div class="diff-card-stats">
+              <div class="diff-card-stat">AI Damage: 60%</div>
+              <div class="diff-card-stat">Rewards: 0.5x</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NORMAL (pre-selected) -->
+        <div class="diff-card medium selected" onclick="diffSelectCard('medium', this)">
+          <div class="diff-card-top-accent"></div>
+          <div class="diff-card-hover-bg"></div>
+          <div class="diff-card-num font-headline">02</div>
+          <div class="diff-card-icon-wrap">
+            <span class="material-symbols-outlined">swords</span>
+          </div>
+          <div class="diff-card-body">
+            <div class="diff-card-name font-headline">
+              NORMAL
+              <span class="diff-recommended">RECOMMENDED</span>
+            </div>
+            <div class="diff-card-bar-wrap"><div class="diff-card-bar"></div></div>
+            <div class="diff-card-stats">
+              <div class="diff-card-stat">AI Damage: 100%</div>
+              <div class="diff-card-stat">Rewards: 1.0x</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXPERT -->
+        <div class="diff-card hard" onclick="diffSelectCard('hard', this)">
+          <div class="diff-card-hover-bg"></div>
+          <div class="diff-card-num font-headline">03</div>
+          <div class="diff-card-icon-wrap">
+            <span class="material-symbols-outlined">local_fire_department</span>
+          </div>
+          <div class="diff-card-body">
+            <div class="diff-card-name font-headline">EXPERT</div>
+            <div class="diff-card-bar-wrap"><div class="diff-card-bar"></div></div>
+            <div class="diff-card-stats">
+              <div class="diff-card-stat">AI Damage: 115%</div>
+              <div class="diff-card-stat">Rewards: 1.5x</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HELL -->
+        <div class="diff-card hell" onclick="diffSelectCard('hell', this)">
+          <div class="diff-card-hover-bg"></div>
+          <div class="diff-card-num font-headline">04</div>
+          <div class="diff-card-icon-wrap">
+            <span class="material-symbols-outlined">skull</span>
+          </div>
+          <div class="diff-card-body">
+            <div class="diff-card-name font-headline">HELL</div>
+            <div class="diff-card-bar-wrap"><div class="diff-card-bar"></div></div>
+            <div class="diff-card-stats">
+              <div class="diff-card-stat">AI Damage: 130%</div>
+              <div class="diff-card-stat">Rewards: 2.5x</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="diff-footer" style="position:relative;z-index:1;justify-content:flex-end;">
+        <button class="diff-deploy-btn font-headline" id="diff-deploy-btn">
+          DEPLOY OPERATOR
+          <span class="material-symbols-outlined">double_arrow</span>
+        </button>
+      </div>
+
+      <!-- HUD decoration -->
+      <div class="diff-hud-bottom">
+        <div class="diff-hud-bars">
+          <span style="width:3px;height:16px;"></span>
+          <span style="width:3px;height:28px;"></span>
+          <span style="width:3px;height:16px;"></span>
+        </div>
+        <div class="diff-hud-text">SYNCING NEURAL LINK... 98%</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Loading Screen -->
+<div id="loading-screen" style="display:none">
+  <div id="loading-title">⚔ AGARI FIGHTERS ⚔</div>
+  <div id="loading-bar-outer"><div id="loading-bar-inner"></div></div>
+  <div id="loading-status">Loading...</div>
+</div>
+
+<!-- Round Start Announce -->
+<div id="announce"><div class="text" id="announce-text"></div></div>
+
+<!-- HUD: HP Bars -->
+<div id="hud-top">
+  <div class="hp-section">
+    <div class="hp-label player">PLAYER</div>
+    <div class="hp-bar-outer">
+      <div class="hp-bar-inner player" id="hp-player" style="width:100%"></div>
+      <div class="hp-text" id="hp-player-text">100 / 100</div>
+    </div>
+  </div>
+  <div id="vs-badge">VS</div>
+  <div class="hp-section right">
+    <div class="hp-label pc">OPPONENT</div>
+    <div class="hp-bar-outer">
+      <div class="hp-bar-inner pc" id="hp-pc" style="width:100%"></div>
+      <div class="hp-text" id="hp-pc-text">100 / 100</div>
+    </div>
+  </div>
+</div>
+
+<!-- Turn Indicator -->
+<div id="turn-indicator" class="player-turn">YOUR TURN - ATTACK</div>
+
+<!-- Log Window -->
+<div id="log-panel">
+  <div class="log-entry">
+    <span style="color:#ffcc00;">⚔ AGARI FIGHTERS ⚔</span><br>
+    <span style="color:#888;">텍스트로 싸워라. 더 강한 말이 이긴다.</span>
+  </div>
+</div>
+
+<!-- Input Area -->
+<div id="input-area">
+  <input type="text" id="text-input" placeholder="공격 대사를 입력하세요..." maxlength="200" />
+  <button class="action-btn" id="btn-attack">⚔ 공격</button>
+  <button class="action-btn" id="btn-defend" style="display:none;">🛡 방어</button>
+</div>
+
+<!-- Game Over Overlay -->
+<div id="game-over">
+  <h1 id="game-over-title"></h1>
+  <p id="game-over-sub" style="font-size:18px;color:#aaa;"></p>
+  <button id="restart-btn">다시 싸우기</button>
+</div>
+
+<!-- 3D Viewport -->
+<canvas id="viewport"></canvas>
+
+<!-- Three.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════
+const MAX_HP = 100;
+
+// 난이도 설정: playerAtkMul=플레이어 공격 배율, pcAtkMul=할머니 공격 배율
+const DIFFICULTY = {
+  beginner: { playerAtkMul: 1.3, pcAtkMul: 0.6, label: '초보 🐣' },
+  medium:   { playerAtkMul: 1.15, pcAtkMul: 0.8, label: '중수 ⚔️' },
+  hard:     { playerAtkMul: 1.0, pcAtkMul: 1.0, label: '고수 🔥' },
+  hell:     { playerAtkMul: 0.8, pcAtkMul: 1.3, label: '헬 💀' },
+};
+
+let state = {
+  turn: 0,
+  phase: 'PLAYER_ATTACK',
+  playerHP: MAX_HP,
+  pcHP: MAX_HP,
+  animating: false,
+  difficulty: 'medium',
+};
+
+let assetsLoaded = false;
+
+// ═══════════════════════════════════════════════════════
+// TITLE SCREEN
+// ═══════════════════════════════════════════════════════
+(function initTitleScreen() {
+  const titleScreen = document.getElementById('title-screen');
+
+  function onAnyKey(e) {
+    if (titleScreen.classList.contains('hidden')) return;
+    titleScreen.classList.add('hidden');
+    document.getElementById('mode-screen').classList.remove('hidden');
+    document.removeEventListener('keydown', onAnyKey);
+    document.removeEventListener('click', onAnyKey);
+  }
+
+  document.addEventListener('keydown', onAnyKey);
+  document.addEventListener('click', onAnyKey);
+})();
+
+// ── Difficulty card selection ──
+let selectedDiff = 'medium';
+function diffSelectCard(diff, el) {
+  selectedDiff = diff;
+  document.querySelectorAll('#diff-cards-container .diff-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+document.addEventListener('DOMContentLoaded', function() {
+  const deployBtn = document.getElementById('diff-deploy-btn');
+  if (deployBtn) deployBtn.addEventListener('click', () => selectDifficulty(selectedDiff));
+});
+
+// ═══════════════════════════════════════════════════════
+// MODE SELECT
+// ═══════════════════════════════════════════════════════
+function selectMode(mode) {
+  document.getElementById('mode-screen').classList.add('hidden');
+  if (mode === 'human') {
+    document.getElementById('nickname-screen').classList.remove('hidden');
+    document.getElementById('nick-input').focus();
+    nickSelectProvider('gemini');
+  } else {
+    document.getElementById('difficulty-screen').classList.remove('hidden');
+  }
+}
+
+function selectDifficulty(diff) {
+  state.difficulty = diff;
+  setSettingsButtonVisible(false);
+  document.getElementById('difficulty-screen').classList.add('hidden');
+  if (assetsLoaded) {
+    // 재시작: 이미 로드됨, 바로 인트로
+    playIntroSequence();
+  } else {
+    // 첫 실행: 로딩 화면 표시
+    document.getElementById('loading-screen').style.display = 'flex';
+  }
+}
+
+function getDiff() { return DIFFICULTY[state.difficulty]; }
+
+// ═══════════════════════════════════════════════════════
+// AI API CALLS
+// ═══════════════════════════════════════════════════════
+async function aiJudge(text, type) {
+  try {
+    const resp = await fetch('/api/judge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, type })
+    });
+    const data = await resp.json();
+    return { score: Math.max(1, Math.min(100, data.score || 50)), comment: data.comment || '' };
+  } catch (e) {
+    console.error('Judge API error:', e);
+    return { score: Math.floor(Math.random() * 40) + 30, comment: '통신 불가' };
+  }
+}
+
+async function aiOpponentAttack(context) {
+  try {
+    const resp = await fetch('/api/opponent/attack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context })
+    });
+    const data = await resp.json();
+    return data.text || '이 할미가 말문이 막혔다니!';
+  } catch (e) {
+    console.error('Opponent attack API error:', e);
+    return '에잇, 통신이 안 되니 할 말도 없구먼!';
+  }
+}
+
+async function aiOpponentDefend(attackText) {
+  try {
+    const resp = await fetch('/api/opponent/defend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attackText })
+    });
+    const data = await resp.json();
+    return data.text || '그게 공격이냐, 간지러워!';
+  } catch (e) {
+    console.error('Opponent defend API error:', e);
+    return '쯧쯧, 어디서 그런 허접한 말을!';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('viewport');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0a1a, 0.02);
+
+// ── Background: arena image as skybox plane ──
+const bgLoader = new THREE.TextureLoader();
+bgLoader.load('arena_bg.png', (tex) => {
+  scene.background = tex;
+});
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 6, 13);
+
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.maxPolarAngle = Math.PI / 2.1;
+controls.minDistance = 6;
+controls.maxDistance = 18;
+controls.target.set(0, 2.5, 0);
+
+// ── Lights ──
+const ambientLight = new THREE.AmbientLight(0x445566, 0.8);
+scene.add(ambientLight);
+
+const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+mainLight.position.set(5, 10, 5);
+mainLight.castShadow = true;
+mainLight.shadow.mapSize.set(1024, 1024);
+scene.add(mainLight);
+
+const blueRim = new THREE.PointLight(0x4488ff, 1.5, 15);
+blueRim.position.set(-4, 3, 4);
+scene.add(blueRim);
+
+const redRim = new THREE.PointLight(0xff4444, 1.5, 15);
+redRim.position.set(4, 3, -4);
+scene.add(redRim);
+
+// ── Main Spotlight (volumetric feel) ──
+const spotLight = new THREE.SpotLight(0xffeedd, 3.0, 30, Math.PI / 6, 0.6, 1.5);
+spotLight.position.set(0, 18, 0);
+spotLight.castShadow = true;
+spotLight.shadow.mapSize.set(2048, 2048);
+scene.add(spotLight);
+scene.add(spotLight.target);
+
+// Volumetric light cone (visible beam)
+const coneGeo = new THREE.CylinderGeometry(0.5, 6, 18, 32, 1, true);
+const coneMat = new THREE.MeshBasicMaterial({
+  color: 0xffeedd, transparent: true, opacity: 0.04,
+  side: THREE.DoubleSide, depthWrite: false
+});
+const lightCone = new THREE.Mesh(coneGeo, coneMat);
+lightCone.position.set(0, 9, 0);
+scene.add(lightCone);
+
+// ── Octagon Arena ──
+const sides = 8;
+const radius = 5;
+const platformHeight = 0.8;
+
+// Helper: generate octagon points
+function octaPoints(r) {
+  const pts = [];
+  for (let i = 0; i < sides; i++) {
+    const angle = (i / sides) * Math.PI * 2 - Math.PI / 8;
+    pts.push(new THREE.Vector2(Math.cos(angle) * r, Math.sin(angle) * r));
+  }
+  return pts;
+}
+
+// Platform base (raised stage)
+const platformShape = new THREE.Shape();
+const outerR = radius + 1.0;
+const op = octaPoints(outerR);
+platformShape.moveTo(op[0].x, op[0].y);
+for (let i = 1; i < op.length; i++) platformShape.lineTo(op[i].x, op[i].y);
+platformShape.closePath();
+const platformGeo = new THREE.ExtrudeGeometry(platformShape, { depth: platformHeight, bevelEnabled: false });
+const platformMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.6, metalness: 0.3 });
+const platform = new THREE.Mesh(platformGeo, platformMat);
+platform.rotation.x = -Math.PI / 2;
+platform.position.y = 0;
+platform.receiveShadow = true;
+scene.add(platform);
+
+// Floor surface (dark with subtle pattern)
+const floorShape = new THREE.Shape();
+const fp = octaPoints(radius);
+floorShape.moveTo(fp[0].x, fp[0].y);
+for (let i = 1; i < fp.length; i++) floorShape.lineTo(fp[i].x, fp[i].y);
+floorShape.closePath();
+const floorGeo = new THREE.ShapeGeometry(floorShape);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0a1e, roughness: 0.4, metalness: 0.5 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = platformHeight + 0.01;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// ── Cage Fence (wire posts + top rail) ──
+const fenceHeight = 3.5;
+const postMat = new THREE.MeshStandardMaterial({ color: 0x222233, roughness: 0.3, metalness: 0.8 });
+const railMat = new THREE.MeshStandardMaterial({ color: 0x333344, roughness: 0.3, metalness: 0.8 });
+const fenceCorners = octaPoints(radius);
+
+for (let i = 0; i < sides; i++) {
+  const p = fenceCorners[i];
+  // Vertical posts
+  const postGeo = new THREE.CylinderGeometry(0.06, 0.06, fenceHeight, 8);
+  const post = new THREE.Mesh(postGeo, postMat);
+  post.position.set(p.x, platformHeight + fenceHeight / 2, p.y);
+  post.castShadow = true;
+  scene.add(post);
+
+  // Top rail between posts
+  const next = fenceCorners[(i + 1) % sides];
+  const midX = (p.x + next.x) / 2, midZ = (p.y + next.y) / 2;
+  const dx = next.x - p.x, dz = next.y - p.y;
+  const len = Math.sqrt(dx * dx + dz * dz);
+  const railGeo = new THREE.CylinderGeometry(0.04, 0.04, len, 8);
+  const rail = new THREE.Mesh(railGeo, railMat);
+  rail.position.set(midX, platformHeight + fenceHeight, midZ);
+  rail.rotation.z = Math.PI / 2;
+  rail.rotation.y = -Math.atan2(dz, dx);
+  // Fix: rotate rail to lie horizontal along the edge
+  rail.rotation.set(0, 0, 0);
+  rail.lookAt(next.x, platformHeight + fenceHeight, next.y);
+  rail.rotateX(Math.PI / 2);
+  rail.position.set(midX, platformHeight + fenceHeight, midZ);
+  scene.add(rail);
+
+  // Wire mesh lines (horizontal wires between posts)
+  const wireMat = new THREE.LineBasicMaterial({ color: 0x444466, transparent: true, opacity: 0.4 });
+  for (let h = 0.5; h < fenceHeight; h += 0.35) {
+    const wireGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(p.x, platformHeight + h, p.y),
+      new THREE.Vector3(next.x, platformHeight + h, next.y)
+    ]);
+    scene.add(new THREE.Line(wireGeo, wireMat));
+  }
+}
+
+// ── Neon LED Strips (blue & red alternating on platform edges) ──
+for (let i = 0; i < sides; i++) {
+  const p1 = octaPoints(outerR)[i];
+  const p2 = octaPoints(outerR)[(i + 1) % sides];
+  const color = i % 2 === 0 ? 0x4488ff : 0xff4444;
+
+  // Bottom edge LED
+  const ledGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(p1.x, 0.05, p1.y),
+    new THREE.Vector3(p2.x, 0.05, p2.y)
+  ]);
+  const ledMat = new THREE.LineBasicMaterial({ color, linewidth: 3 });
+  scene.add(new THREE.Line(ledGeo, ledMat));
+
+  // Top edge LED (platform rim)
+  const ip1 = octaPoints(radius + 0.1)[i];
+  const ip2 = octaPoints(radius + 0.1)[(i + 1) % sides];
+  const topLedGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(ip1.x, platformHeight + 0.02, ip1.y),
+    new THREE.Vector3(ip2.x, platformHeight + 0.02, ip2.y)
+  ]);
+  scene.add(new THREE.Line(topLedGeo, ledMat));
+
+  // Small LED point light for glow
+  const midX = (ip1.x + ip2.x) / 2, midZ = (ip1.y + ip2.y) / 2;
+  const ledLight = new THREE.PointLight(color, 0.6, 3);
+  ledLight.position.set(midX, platformHeight + 0.3, midZ);
+  scene.add(ledLight);
+}
+
+// ── Ground Plane (arena floor below platform) ──
+const groundGeo = new THREE.PlaneGeometry(80, 80);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x050510, roughness: 0.95 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.01;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ── Floating Screens (left & right) ──
+function createScreen(x, z, rotY, tint) {
+  const screenGroup = new THREE.Group();
+  // Frame
+  const frameGeo = new THREE.BoxGeometry(3.2, 2.0, 0.15);
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.9 });
+  screenGroup.add(new THREE.Mesh(frameGeo, frameMat));
+  // Screen face (emissive)
+  const faceGeo = new THREE.PlaneGeometry(3.0, 1.8);
+  const faceMat = new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.3 });
+  const face = new THREE.Mesh(faceGeo, faceMat);
+  face.position.z = 0.08;
+  screenGroup.add(face);
+  // Glow
+  const glowLight = new THREE.PointLight(tint, 1.0, 5);
+  glowLight.position.set(0, 0, 0.5);
+  screenGroup.add(glowLight);
+
+  screenGroup.position.set(x, 7, z);
+  screenGroup.rotation.y = rotY;
+  scene.add(screenGroup);
+  return screenGroup;
+}
+const screenLeft = createScreen(-8, -4, 0.4, 0x4488ff);
+const screenRight = createScreen(8, -4, -0.4, 0xff4444);
+
+// ── Crowd (particle silhouettes around arena) ──
+const crowdCount = 600;
+const crowdGeo = new THREE.BufferGeometry();
+const crowdPositions = new Float32Array(crowdCount * 3);
+for (let i = 0; i < crowdCount; i++) {
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 10 + Math.random() * 15;
+  crowdPositions[i * 3] = Math.cos(angle) * dist;
+  crowdPositions[i * 3 + 1] = Math.random() * 4 + 0.5;
+  crowdPositions[i * 3 + 2] = Math.sin(angle) * dist;
+}
+crowdGeo.setAttribute('position', new THREE.Float32BufferAttribute(crowdPositions, 3));
+const crowdMat = new THREE.PointsMaterial({ color: 0x888888, size: 0.3, transparent: true, opacity: 0.4 });
+scene.add(new THREE.Points(crowdGeo, crowdMat));
+
+// ═══════════════════════════════════════════════════════
+// FBX CHARACTER LOADER + ANIMATION SYSTEM
+// ═══════════════════════════════════════════════════════
+// Loading manager for progress tracking
+const loadingScreen = document.getElementById('loading-screen');
+const loadingBar = document.getElementById('loading-bar-inner');
+const loadingStatus = document.getElementById('loading-status');
+let totalLoads = 0, completedLoads = 0;
+
+function trackLoad(label) {
+  totalLoads++;
+  loadingStatus.textContent = label;
+  return () => {
+    completedLoads++;
+    const pct = Math.round((completedLoads / totalLoads) * 100);
+    loadingBar.style.width = pct + '%';
+    loadingStatus.textContent = `${completedLoads}/${totalLoads} loaded`;
+    if (completedLoads >= totalLoads) onAllLoaded();
+  };
+}
+
+function onAllLoaded() {
+  assetsLoaded = true;
+  loadingStatus.textContent = 'Ready!';
+  setTimeout(() => {
+    loadingScreen.classList.add('hidden');
+    setTimeout(() => loadingScreen.style.display = 'none', 500);
+    playIntroSequence();
+  }, 300);
+}
+
+const fbxLoader = new THREE.FBXLoader();
+const PLAYER_POS = new THREE.Vector3(-2.5, 0.8, 2);
+const PC_POS = new THREE.Vector3(2.5, 0.8, -2);
+const REFEREE_POS = new THREE.Vector3(0, 0.8, -3.5);
+
+// Placeholders (replaced when FBX loads)
+let playerMesh = new THREE.Group();
+playerMesh.position.copy(PLAYER_POS);
+scene.add(playerMesh);
+
+let pcMesh = new THREE.Group();
+pcMesh.position.copy(PC_POS);
+scene.add(pcMesh);
+
+// Referee (old taunt_idle mannequin)
+let refereeMesh = null;
+let refereeMixer = null;
+const onRefLoaded = trackLoad('Referee');
+fbxLoader.load('refree%20Talking%20On%20Phone.fbx', (model) => {
+  const box = new THREE.Box3().setFromObject(model);
+  const height = box.max.y - box.min.y;
+  model.scale.setScalar(2.5 / height);
+  model.position.copy(REFEREE_POS);
+  const boxScaled = new THREE.Box3().setFromObject(model);
+  model.position.y = -boxScaled.min.y + platformHeight + 1.0;
+  model.lookAt(new THREE.Vector3(0, model.position.y, 0));
+  tintModel(model, 0xffcc00, 0xffaa00);
+  refereeMesh = model;
+  refereeMixer = new THREE.AnimationMixer(model);
+  if (model.animations.length > 0) {
+    refereeMixer.clipAction(model.animations[0]).play();
+  }
+  scene.add(model);
+  onRefLoaded();
+});
+
+// Animation storage
+const playerAnims = {};
+const pcAnims = {};
+let playerMixer = null;
+let pcMixer = null;
+let playerCurrentAction = null;
+let pcCurrentAction = null;
+
+// Glow rings (added immediately)
+function addGlowRing(group, color) {
+  const ringGeo = new THREE.RingGeometry(0.5, 0.7, 32);
+  const ringMat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02;
+  group.add(ring);
+  group.ringRef = ring;
+}
+addGlowRing(playerMesh, 0x4488ff);
+addGlowRing(pcMesh, 0xff4444);
+
+// Tint all meshes in a model
+function tintModel(model, color, emissive) {
+  model.traverse(child => {
+    if (child.isMesh && child.material) {
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(m => {
+        m.emissive = new THREE.Color(emissive);
+        m.emissiveIntensity = 0.15;
+      });
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+}
+
+// Play animation helper
+function playAnim(mixer, anims, name, currentAction) {
+  const clip = anims[name];
+  if (!clip || !mixer) return currentAction;
+  const action = mixer.clipAction(clip);
+  if (currentAction && currentAction !== action) {
+    currentAction.fadeOut(0.2);
+  }
+  action.reset().fadeIn(0.2).play();
+  return action;
+}
+
+// Load character with dedicated P1/P2 FBX files (Start, Ready, Attack)
+function loadCharacter(config, pos, rotY, tintColor, emissiveColor, animStore, isPlayer) {
+  const label = isPlayer ? 'P1' : 'P2';
+  const onReady = trackLoad(label + ' Ready');
+  const onStart = trackLoad(label + ' Start');
+  const onAttack = trackLoad(label + ' Attack');
+  const onDefend = trackLoad(label + ' Defend');
+  // Load Ready FBX as the base model (idle stance)
+  fbxLoader.load(config.ready, (model) => {
+    onReady();
+    // Auto-scale: fit character to ~3 units tall
+    const box = new THREE.Box3().setFromObject(model);
+    const height = box.max.y - box.min.y;
+    const targetHeight = 3.0;
+    const autoScale = targetHeight / height;
+    model.scale.setScalar(autoScale);
+    model.position.copy(pos);
+    // Adjust Y so feet touch the floor
+    const boxScaled = new THREE.Box3().setFromObject(model);
+    model.position.y = -boxScaled.min.y + platformHeight + 1.0;
+    // Face the center of the ring
+    const lookTarget = new THREE.Vector3(0, model.position.y, 0);
+    model.lookAt(lookTarget);
+    console.log(`${isPlayer ? 'P1' : 'P2'} loaded: height=${height.toFixed(1)}, scale=${autoScale.toFixed(4)}`);
+
+    tintModel(model, tintColor, emissiveColor);
+
+    // Setup mixer
+    const mixer = new THREE.AnimationMixer(model);
+    if (model.animations.length > 0) {
+      animStore['ready'] = model.animations[0];
+    }
+
+    // Replace placeholder
+    if (isPlayer) {
+      scene.remove(playerMesh);
+      const ring = playerMesh.ringRef;
+      if (ring) { model.add(ring); model.ringRef = ring; }
+      playerMesh = model;
+      playerMixer = mixer;
+    } else {
+      scene.remove(pcMesh);
+      const ring = pcMesh.ringRef;
+      if (ring) { model.add(ring); model.ringRef = ring; }
+      pcMesh = model;
+      pcMixer = mixer;
+    }
+    scene.add(model);
+
+    // Load Start animation (intro) - don't auto-play, wait for intro sequence
+    fbxLoader.load(config.start, (animFBX) => {
+      if (animFBX.animations.length > 0) {
+        animStore['start'] = animFBX.animations[0];
+      }
+      // Play idle immediately
+      if (animStore['ready']) {
+        const idleAction = mixer.clipAction(animStore['ready']);
+        idleAction.play();
+        if (isPlayer) playerCurrentAction = idleAction;
+        else pcCurrentAction = idleAction;
+      }
+      onStart();
+    });
+
+    // Load Attack animation
+    fbxLoader.load(config.attack, (animFBX) => {
+      if (animFBX.animations.length > 0) {
+        animStore['attack'] = animFBX.animations[0];
+      }
+      onAttack();
+    });
+
+    // Load shared defend animation
+    fbxLoader.load('dodge_backward.fbx', (animFBX) => {
+      if (animFBX.animations.length > 0) {
+        animStore['dodge_backward'] = animFBX.animations[0];
+      }
+      onDefend();
+    });
+
+  }, undefined, (err) => console.error('FBX load error:', err));
+}
+
+// Load P1 (Player) and P2 (Opponent) with dedicated FBX files
+loadCharacter(
+  { start: 'P1%20Start.fbx', ready: 'P1%20Ready.fbx', attack: 'P1%20Attack.fbx' },
+  PLAYER_POS, 0.4, 0x1a6dff, 0x0066ff, playerAnims, true
+);
+loadCharacter(
+  { start: 'P2%20Start.fbx', ready: 'P2%20Ready.fbx', attack: 'P2%20Kicking.fbx' },
+  PC_POS, Math.PI - 0.4, 0xcc1111, 0xff2200, pcAnims, false
+);
+
+// ── Clock ──
+const clock = new THREE.Clock();
+
+// ═══════════════════════════════════════════════════════
+// TWEEN SYSTEM
+// ═══════════════════════════════════════════════════════
+const tweens = [];
+
+function tweenTo(obj, target, duration, easing, onComplete) {
+  const start = {};
+  Object.keys(target).forEach(k => start[k] = obj[k]);
+  const tween = { obj, start, target, duration, easing, onComplete, elapsed: 0 };
+  tweens.push(tween);
+  return tween;
+}
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInCubic(t) { return t * t * t; }
+function easeInOutQuad(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
+
+function updateTweens(dt) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i];
+    tw.elapsed += dt;
+    const progress = Math.min(tw.elapsed / tw.duration, 1);
+    const eased = tw.easing(progress);
+    Object.keys(tw.target).forEach(k => {
+      tw.obj[k] = tw.start[k] + (tw.target[k] - tw.start[k]) * eased;
+    });
+    if (progress >= 1) {
+      tweens.splice(i, 1);
+      if (tw.onComplete) tw.onComplete();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// FX OVERLAY SYSTEM
+// ═══════════════════════════════════════════════════════
+const screenFlash = document.getElementById('screen-flash');
+
+function showFxOverlay(imageUrl, x, y, extraClass) {
+  const el = document.createElement('div');
+  el.className = 'fx-overlay' + (extraClass ? ' ' + extraClass : '');
+  el.style.backgroundImage = `url('${imageUrl}')`;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  document.body.appendChild(el);
+  const dur = extraClass === 'critical' ? 800 : extraClass === 'shield' ? 800 : 600;
+  setTimeout(() => el.remove(), dur);
+}
+
+function flashScreen(color, duration) {
+  screenFlash.style.background = color;
+  screenFlash.style.opacity = '0.4';
+  setTimeout(() => { screenFlash.style.opacity = '0'; }, duration || 100);
+}
+
+function getScreenPos(mesh) {
+  const pos = new THREE.Vector3(mesh.position.x, mesh.position.y + 1.8, mesh.position.z);
+  pos.project(camera);
+  return {
+    x: (pos.x * 0.5 + 0.5) * window.innerWidth,
+    y: (-pos.y * 0.5 + 0.5) * window.innerHeight
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// ATTACK ANIMATION
+// ═══════════════════════════════════════════════════════
+function triggerCharAnim(isPlayer, animName, loop) {
+  const mixer = isPlayer ? playerMixer : pcMixer;
+  const anims = isPlayer ? playerAnims : pcAnims;
+  if (!mixer || !anims[animName]) return;
+  const action = mixer.clipAction(anims[animName]);
+  action.reset().fadeIn(0.1);
+  if (!loop) {
+    action.setLoop(THREE.LoopOnce);
+    action.clampWhenFinished = true;
+  }
+  action.play();
+  // Return to Ready idle after animation
+  if (!loop) {
+    const dur = anims[animName].duration * 1000;
+    setTimeout(() => {
+      action.fadeOut(0.3);
+      const idle = mixer.clipAction(anims['ready']);
+      if (idle) idle.reset().fadeIn(0.3).play();
+    }, dur);
+  }
+}
+
+function playAttackAnimation(attacker, attackerHome, targetPos, targetMesh, isPlayerAttacking, damage, onDone) {
+  state.animating = true;
+  updateTurnIndicator();
+
+  // Play attack animation on the attacker (dedicated P1/P2 Attack)
+  triggerCharAnim(isPlayerAttacking, 'attack', false);
+
+  const hitPos = targetPos.clone().lerp(attackerHome, 0.2);
+  tweenTo(attacker.position, { x: hitPos.x, z: hitPos.z }, 0.3, easeInCubic, () => {
+    // Impact!
+    spawnImpactFlash(targetPos);
+    shakeCamera();
+
+    // Show FX overlay
+    const screenPos = getScreenPos(targetMesh);
+    const isCritical = damage >= 25;
+
+    if (isCritical) {
+      showFxOverlay('fx_critical.png', screenPos.x, screenPos.y, 'critical');
+      flashScreen('rgba(255,255,255,0.6)', 150);
+    } else {
+      const fxImg = isPlayerAttacking ? 'fx_blue_blast.png' : 'fx_red_blast.png';
+      showFxOverlay(fxImg, screenPos.x, screenPos.y);
+      flashScreen(isPlayerAttacking ? 'rgba(79,164,255,0.3)' : 'rgba(255,79,79,0.3)', 100);
+    }
+
+    // Hit recoil on target
+    const recoilDir = targetPos.clone().sub(attackerHome).normalize().multiplyScalar(0.5);
+    const recoilTarget = { x: targetPos.x + recoilDir.x, z: targetPos.z + recoilDir.z };
+    tweenTo(targetMesh.position, recoilTarget, 0.1, easeOutCubic, () => {
+      tweenTo(targetMesh.position, { x: targetPos.x, z: targetPos.z }, 0.3, easeOutCubic);
+    });
+
+    setTimeout(() => {
+      tweenTo(attacker.position, { x: attackerHome.x, z: attackerHome.z }, 0.4, easeOutCubic, () => {
+        state.animating = false;
+        if (onDone) onDone();
+      });
+    }, 200);
+  });
+}
+
+function playDefendAnimation(defenderMesh) {
+  const isPlayer = defenderMesh === playerMesh;
+  triggerCharAnim(isPlayer, 'dodge_backward', false);
+  const screenPos = getScreenPos(defenderMesh);
+  showFxOverlay('fx_shield.png', screenPos.x, screenPos.y, 'shield');
+  flashScreen('rgba(79,164,255,0.2)', 100);
+}
+
+function spawnImpactFlash(pos) {
+  const flashGeo = new THREE.SphereGeometry(0.5, 16, 16);
+  const flashMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9 });
+  const flash = new THREE.Mesh(flashGeo, flashMat);
+  flash.position.copy(pos);
+  flash.position.y = 1.5;
+  scene.add(flash);
+
+  tweenTo(flash.scale, { x: 4, y: 4, z: 4 }, 0.3, easeOutCubic);
+  tweenTo(flashMat, { opacity: 0 }, 0.3, easeOutCubic, () => {
+    scene.remove(flash);
+    flashGeo.dispose();
+    flashMat.dispose();
+  });
+}
+
+function shakeCamera() {
+  const orig = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
+  controls.target.x += (Math.random() - 0.5) * 0.6;
+  controls.target.y += (Math.random() - 0.5) * 0.3;
+  setTimeout(() => {
+    tweenTo(controls.target, orig, 0.4, easeOutCubic);
+  }, 50);
+}
+
+// ═══════════════════════════════════════════════════════
+// UI LOGIC
+// ═══════════════════════════════════════════════════════
+const hpPlayerBar = document.getElementById('hp-player');
+const hpPcBar = document.getElementById('hp-pc');
+const hpPlayerText = document.getElementById('hp-player-text');
+const hpPcText = document.getElementById('hp-pc-text');
+const turnIndicator = document.getElementById('turn-indicator');
+const logPanel = document.getElementById('log-panel');
+const textInput = document.getElementById('text-input');
+const btnAttack = document.getElementById('btn-attack');
+const btnDefend = document.getElementById('btn-defend');
+const gameOverEl = document.getElementById('game-over');
+const gameOverTitle = document.getElementById('game-over-title');
+const gameOverSub = document.getElementById('game-over-sub');
+
+function updateHP() {
+  const pPct = Math.max(0, state.playerHP / MAX_HP * 100);
+  const cPct = Math.max(0, state.pcHP / MAX_HP * 100);
+  hpPlayerBar.style.width = pPct + '%';
+  hpPcBar.style.width = cPct + '%';
+  hpPlayerText.textContent = `${Math.max(0, state.playerHP)} / ${MAX_HP}`;
+  hpPcText.textContent = `${Math.max(0, state.pcHP)} / ${MAX_HP}`;
+}
+
+function updateTurnIndicator() {
+  turnIndicator.className = '';
+  if (state.animating) {
+    turnIndicator.className = 'animating';
+    turnIndicator.textContent = '⚔ FIGHTING ⚔';
+  } else if (state.phase === 'PLAYER_ATTACK') {
+    turnIndicator.className = 'player-turn';
+    turnIndicator.textContent = 'YOUR TURN - ATTACK';
+  } else if (state.phase === 'PLAYER_DEFEND') {
+    turnIndicator.className = 'player-turn';
+    turnIndicator.textContent = 'YOUR TURN - DEFEND';
+  } else {
+    turnIndicator.className = 'pc-turn';
+    turnIndicator.textContent = "OPPONENT'S TURN";
+  }
+}
+
+function addLog(html) {
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = html;
+  logPanel.appendChild(div);
+  logPanel.scrollTop = logPanel.scrollHeight;
+}
+
+// ── Speech Bubble ──
+let activeBubbles = [];
+
+function showSpeechBubble(text, who) {
+  const mesh = who === 'player' ? playerMesh : pcMesh;
+  const bubble = document.createElement('div');
+  bubble.className = `speech-bubble ${who}`;
+  bubble.textContent = text.length > 60 ? text.slice(0, 57) + '...' : text;
+  document.body.appendChild(bubble);
+
+  const entry = { bubble, mesh, who };
+  activeBubbles.push(entry);
+
+  setTimeout(() => {
+    bubble.style.animation = 'bubbleOut .3s ease-in forwards';
+    setTimeout(() => {
+      bubble.remove();
+      activeBubbles = activeBubbles.filter(e => e !== entry);
+    }, 300);
+  }, 5000);
+}
+
+function updateBubblePositions() {
+  activeBubbles.forEach(({ bubble, mesh }) => {
+    const headPos = new THREE.Vector3(mesh.position.x, mesh.position.y + 3.2, mesh.position.z);
+    headPos.project(camera);
+    const x = (headPos.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-headPos.y * 0.5 + 0.5) * window.innerHeight;
+    bubble.style.left = x + 'px';
+    bubble.style.top = y + 'px';
+  });
+}
+
+function showDamagePopup(damage, isPlayer) {
+  const popup = document.createElement('div');
+  popup.className = 'damage-popup';
+  popup.textContent = `-${damage}`;
+  popup.style.color = isPlayer ? '#ff4f4f' : '#4fa4ff';
+  const targetMesh = isPlayer ? playerMesh : pcMesh;
+  const sp = getScreenPos(targetMesh);
+  popup.style.left = sp.x + 'px';
+  popup.style.top = (sp.y - 50) + 'px';
+  popup.style.transform = 'translateX(-50%)';
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 1200);
+}
+
+function setInputEnabled(enabled) {
+  textInput.disabled = !enabled;
+  btnAttack.disabled = !enabled;
+  btnDefend.disabled = !enabled;
+}
+
+function setActionMode(mode) {
+  if (mode === 'attack') {
+    btnAttack.style.display = '';
+    btnDefend.style.display = 'none';
+    textInput.placeholder = '공격 대사를 입력하세요...';
+  } else {
+    btnAttack.style.display = 'none';
+    btnDefend.style.display = '';
+    textInput.placeholder = '방어 대사를 입력하세요...';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// GAME FLOW
+// ═══════════════════════════════════════════════════════
+function checkGameOver() {
+  if (state.pcHP <= 0) {
+    gameOverTitle.textContent = 'YOU WIN!';
+    gameOverTitle.className = 'win';
+    gameOverSub.textContent = `${state.turn}턴 만에 승리!`;
+    gameOverEl.classList.add('visible');
+    setInputEnabled(false);
+    return true;
+  }
+  if (state.playerHP <= 0) {
+    gameOverTitle.textContent = 'YOU LOSE';
+    gameOverTitle.className = 'lose';
+    gameOverSub.textContent = `${state.turn}턴에서 패배...`;
+    gameOverEl.classList.add('visible');
+    setInputEnabled(false);
+    return true;
+  }
+  return false;
+}
+
+async function handlePlayerAttack() {
+  const text = textInput.value.trim();
+  if (!text) return;
+  textInput.value = '';
+  setInputEnabled(false);
+  state.turn++;
+  state.lastPlayerText = text;
+
+  // 1) 플레이어 공격 대사 표시
+  showSpeechBubble(text, 'player');
+  addLog(`<span class="turn-num">TURN ${state.turn}</span><br>
+    <span class="attacker player">PLAYER</span> 공격: <span class="speech">"${text}"</span>`);
+
+  // 2) 심판이 공격력 채점 + 할머니가 방어 대사 생성 (병렬)
+  turnIndicator.className = 'animating';
+  turnIndicator.textContent = '👵 할머니 방어 준비 중...';
+  const [atkResult, pcDefText] = await Promise.all([
+    aiJudge(text, 'attack'),
+    aiOpponentDefend(text)
+  ]);
+  const atkScore = atkResult.score;
+
+  // 3) 할머니 방어 대사 표시 (애니메이션은 공격과 동시에)
+  showSpeechBubble(pcDefText, 'pc');
+  addLog(`<span class="attacker pc">👵 할머니</span> 방어: <span class="speech">"${pcDefText}"</span>`);
+
+  // 4) 심판이 방어력 채점
+  turnIndicator.textContent = '⚖ 심판 판정 중...';
+  const defResult = await aiJudge(pcDefText, 'defend');
+  const defScore = defResult.score;
+
+  // 5) 최종 판정 (난이도 적용: 플레이어 공격 배율)
+  const damage = Math.max(0, Math.round((atkScore - defScore * 0.6) * 0.5 * getDiff().playerAtkMul));
+  addLog(`⚖ 심판 판정 — 공격력 <span class="score">${atkScore}</span> (${atkResult.comment}) vs 방어력 <span class="score">${defScore}</span> (${defResult.comment})
+    → 데미지 <span class="damage">${damage}</span>`);
+
+  state.pcHP = Math.max(0, state.pcHP - damage);
+  updateHP();
+  if (damage > 0) showDamagePopup(damage, false);
+
+  // 6) 공격 + 방어 애니메이션 동시 실행
+  playDefendAnimation(pcMesh);
+  playAttackAnimation(playerMesh, PLAYER_POS, PC_POS, pcMesh, true, damage, () => {
+    if (checkGameOver()) return;
+    state.phase = 'PC_ATTACK';
+    updateTurnIndicator();
+    setTimeout(handlePCAttack, 800);
+  });
+}
+
+async function handlePCAttack() {
+  turnIndicator.className = 'animating';
+  turnIndicator.textContent = '👵 할머니 도발 중...';
+
+  // 1) 할머니 공격 대사 생성
+  const pcAtkText = await aiOpponentAttack(state.lastPlayerText);
+  showSpeechBubble(pcAtkText, 'pc');
+  addLog(`<span class="attacker pc">👵 할머니</span> 공격: <span class="speech">"${pcAtkText}"</span>`);
+
+  // 2) 심판이 공격력 채점
+  turnIndicator.textContent = '⚖ 심판 채점 중...';
+  const atkResult = await aiJudge(pcAtkText, 'attack');
+  const atkScore = atkResult.score;
+  addLog(`⚖ 심판: <span class="score">${atkResult.comment}</span> | 공격력 <span class="score">${atkScore}</span> — 방어 대사를 입력하세요!`);
+
+  // 3) 플레이어 방어 차례
+  state.phase = 'PLAYER_DEFEND';
+  updateTurnIndicator();
+  setActionMode('defend');
+  setInputEnabled(true);
+  textInput.focus();
+
+  state.pendingPCAttack = { text: pcAtkText, score: atkScore, comment: atkResult.comment };
+}
+
+async function handlePlayerDefend() {
+  const text = textInput.value.trim();
+  if (!text) return;
+  textInput.value = '';
+  setInputEnabled(false);
+
+  // 1) 플레이어 방어 대사 표시 (애니메이션은 공격과 동시에)
+  showSpeechBubble(text, 'player');
+  addLog(`<span class="attacker player">PLAYER</span> 방어: <span class="speech">"${text}"</span>`);
+
+  // 2) 심판이 방어력 채점
+  turnIndicator.className = 'animating';
+  turnIndicator.textContent = '⚖ 심판 판정 중...';
+  const defResult = await aiJudge(text, 'defend');
+  const defScore = defResult.score;
+
+  const { text: pcAtkText, score: atkScore, comment: atkComment } = state.pendingPCAttack;
+  // 난이도 적용: 할머니 공격 배율
+  const damage = Math.max(0, Math.round((atkScore - defScore * 0.6) * 0.5 * getDiff().pcAtkMul));
+
+  // 3) 최종 판정
+  addLog(`⚖ 심판 판정 — 공격력 <span class="score">${atkScore}</span> (${atkComment}) vs 방어력 <span class="score">${defScore}</span> (${defResult.comment})
+    → 데미지 <span class="damage">${damage}</span>`);
+
+  state.playerHP = Math.max(0, state.playerHP - damage);
+  updateHP();
+  if (damage > 0) showDamagePopup(damage, true);
+
+  // 4) 공격 + 방어 애니메이션 동시 실행
+  playDefendAnimation(playerMesh);
+  playAttackAnimation(pcMesh, PC_POS, PLAYER_POS, playerMesh, false, damage, () => {
+    if (checkGameOver()) return;
+    state.phase = 'PLAYER_ATTACK';
+    updateTurnIndicator();
+    setActionMode('attack');
+    setInputEnabled(true);
+    textInput.focus();
+  });
+}
+
+// handleAction is defined at the bottom (supports both single/multiplayer)
+
+function restartGame() {
+  // restartGameMP handles both modes (defined at bottom)
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER LOOP
+// ═══════════════════════════════════════════════════════
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  // Animation mixers update
+  if (playerMixer) playerMixer.update(dt);
+  if (pcMixer) pcMixer.update(dt);
+  if (refereeMixer) refereeMixer.update(dt);
+
+  // Glow ring pulse
+  if (playerMesh.ringRef) playerMesh.ringRef.material.opacity = 0.4 + Math.sin(elapsed * 3) * 0.2;
+  if (pcMesh.ringRef) pcMesh.ringRef.material.opacity = 0.4 + Math.sin(elapsed * 3 + 1) * 0.2;
+
+  // Pulsing rim lights
+  blueRim.intensity = 1.2 + Math.sin(elapsed * 2) * 0.5;
+  redRim.intensity = 1.2 + Math.sin(elapsed * 2 + Math.PI) * 0.5;
+
+  updateTweens(dt);
+  controls.update();
+  renderer.render(scene, camera);
+  updateBubblePositions();
+}
+animate();
+
+// ── Resize Handler ──
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ═══════════════════════════════════════════════════════
+// ROUND START ANNOUNCE
+// ═══════════════════════════════════════════════════════
+const announceText = document.getElementById('announce-text');
+
+function showAnnounce(text, color, duration) {
+  return new Promise(resolve => {
+    announceText.textContent = text;
+    announceText.style.color = color;
+    announceText.style.animation = 'none';
+    announceText.offsetHeight; // force reflow
+    announceText.style.animation = `announceIn ${duration}ms ease-out forwards`;
+    setTimeout(resolve, duration);
+  });
+}
+
+function playStartAnim(isPlayer) {
+  const mixer = isPlayer ? playerMixer : pcMixer;
+  const anims = isPlayer ? playerAnims : pcAnims;
+  if (!mixer || !anims['start']) return;
+  const startAction = mixer.clipAction(anims['start']);
+  startAction.reset().fadeIn(0.2).play();
+  startAction.setLoop(THREE.LoopOnce);
+  startAction.clampWhenFinished = true;
+  const onDone = (e) => {
+    if (e.action === startAction) {
+      mixer.removeEventListener('finished', onDone);
+      startAction.fadeOut(0.3);
+      if (anims['ready']) {
+        mixer.clipAction(anims['ready']).reset().fadeIn(0.3).play();
+      }
+    }
+  };
+  mixer.addEventListener('finished', onDone);
+}
+
+async function playIntroSequence() {
+  setInputEnabled(false);
+  // Start 애니메이션 재생 + "READY!" 동시에
+  playStartAnim(true);
+  playStartAnim(false);
+  await showAnnounce('READY!', '#ffcc00', 1800);
+  await showAnnounce('FIGHT!', '#ff4444', 1200);
+  setInputEnabled(true);
+  textInput.focus();
+}
+
+// Intro is triggered by onAllLoaded() after all FBX files are ready
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS MODAL
+// ═══════════════════════════════════════════════════════
+const PROVIDER_MODELS = {
+  gemini:    ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+  openai:    ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+  anthropic: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001']
+};
+
+let settingsState = { provider: 'gemini', model: 'gemini-2.5-flash', apiKey: '' };
+
+async function openSettings() {
+  try {
+    const resp = await fetch('/api/settings');
+    const data = await resp.json();
+    settingsState.provider = data.provider;
+    settingsState.model = data.model;
+    document.getElementById('settings-key-input').value = '';
+    document.getElementById('settings-key-input').placeholder = data.hasKey ? data.maskedKey : 'API Key 입력...';
+    renderSettingsProvider(data.provider);
+    renderSettingsModels(data.provider, data.model);
+    updateSettingsStatus(data.hasKey);
+  } catch(e) {
+    renderSettingsProvider(settingsState.provider);
+    renderSettingsModels(settingsState.provider, settingsState.model);
+    updateSettingsStatus(false);
+  }
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.add('hidden');
+}
+
+function renderSettingsProvider(provider) {
+  document.querySelectorAll('.provider-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.provider === provider);
+  });
+  settingsState.provider = provider;
+  renderSettingsModels(provider, null);
+}
+
+function renderSettingsModels(provider, selectedModel) {
+  const sel = document.getElementById('settings-model-select');
+  sel.innerHTML = '';
+  PROVIDER_MODELS[provider].forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = m;
+    if (m === selectedModel || m === settingsState.model) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  settingsState.model = sel.value;
+}
+
+function updateSettingsStatus(hasKey) {
+  const el = document.getElementById('settings-status');
+  if (hasKey) {
+    el.className = 'settings-status ok';
+    el.innerHTML = '<span class="material-symbols-outlined">check_circle</span> API Key 설정됨';
+  } else {
+    el.className = 'settings-status warn';
+    el.innerHTML = '<span class="material-symbols-outlined">warning</span> API Key가 없습니다';
+  }
+}
+
+async function saveSettings() {
+  const provider = settingsState.provider;
+  const model = document.getElementById('settings-model-select').value;
+  const apiKey = document.getElementById('settings-key-input').value.trim();
+  const btn = document.querySelector('.settings-btn-save');
+  btn.textContent = 'SAVING...';
+  try {
+    const body = { provider, model };
+    if (apiKey) body.apiKey = apiKey;
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    btn.textContent = 'SAVED!';
+    setTimeout(() => { btn.textContent = 'SAVE'; closeSettings(); }, 800);
+  } catch(e) {
+    btn.textContent = 'ERROR';
+    setTimeout(() => { btn.textContent = 'SAVE'; }, 1500);
+  }
+}
+
+// key visibility toggle
+document.getElementById('settings-key-toggle').addEventListener('click', () => {
+  const inp = document.getElementById('settings-key-input');
+  const icon = document.querySelector('#settings-key-toggle .material-symbols-outlined');
+  if (inp.type === 'password') { inp.type = 'text'; icon.textContent = 'visibility_off'; }
+  else { inp.type = 'password'; icon.textContent = 'visibility'; }
+});
+
+// modal backdrop click
+document.getElementById('settings-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('settings-modal')) closeSettings();
+});
+
+// settings button visibility: hide during gameplay
+function setSettingsButtonVisible(v) {
+  document.getElementById('settings-btn').classList.toggle('hidden', !v);
+}
+
+// ═══════════════════════════════════════════════════════
+// MULTIPLAYER (VS HUMAN)
+// ═══════════════════════════════════════════════════════
+const MP_PROVIDER_MODELS = {
+  gemini:    ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+  openai:    ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+  anthropic: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001']
+};
+
+let mpState = {
+  active: false,
+  ws: null,
+  nickname: '',
+  opponentNickname: '',
+  mySide: 'left',    // 'left' = P1 position, 'right' = P2 position
+  myRole: null,       // 'attacker' or 'defender' this turn
+  provider: 'gemini',
+  model: 'gemini-2.5-flash',
+  apiKey: '',
+};
+
+function nickSelectProvider(provider) {
+  mpState.provider = provider;
+  document.querySelectorAll('#nick-provider-tabs .nick-provider-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.provider === provider);
+  });
+  const sel = document.getElementById('nick-model-select');
+  sel.innerHTML = '';
+  MP_PROVIDER_MODELS[provider].forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = m;
+    sel.appendChild(opt);
+  });
+  mpState.model = sel.value;
+}
+
+document.getElementById('nick-model-select').addEventListener('change', (e) => {
+  mpState.model = e.target.value;
+});
+
+document.getElementById('nick-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('nick-key-input').focus();
+});
+document.getElementById('nick-key-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') startMatchmaking();
+});
+
+function nickGoBack() {
+  document.getElementById('nickname-screen').classList.add('hidden');
+  document.getElementById('mode-screen').classList.remove('hidden');
+}
+
+function startMatchmaking() {
+  const nickname = document.getElementById('nick-input').value.trim();
+  if (!nickname) { document.getElementById('nick-input').focus(); return; }
+  const apiKey = document.getElementById('nick-key-input').value.trim();
+  if (!apiKey) { document.getElementById('nick-key-input').focus(); return; }
+
+  mpState.nickname = nickname;
+  mpState.apiKey = apiKey;
+  mpState.model = document.getElementById('nick-model-select').value;
+
+  document.getElementById('nickname-screen').classList.add('hidden');
+  document.getElementById('lobby-screen').classList.remove('hidden');
+  document.getElementById('lobby-content').innerHTML = `
+    <div class="lobby-spinner"></div>
+    <div class="lobby-title">SEARCHING<span class="lobby-dots"></span></div>
+    <div class="lobby-status" id="lobby-status">상대를 찾고 있습니다...</div>
+    <button class="lobby-cancel-btn" onclick="cancelMatchmaking()">CANCEL</button>
+  `;
+
+  setSettingsButtonVisible(false);
+  connectWebSocket();
+}
+
+function cancelMatchmaking() {
+  if (mpState.ws) {
+    mpState.ws.send(JSON.stringify({ type: 'cancel_match' }));
+    mpState.ws.close();
+    mpState.ws = null;
+  }
+  document.getElementById('lobby-screen').classList.add('hidden');
+  document.getElementById('nickname-screen').classList.remove('hidden');
+  setSettingsButtonVisible(true);
+}
+
+function connectWebSocket() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${protocol}//${location.host}`);
+  mpState.ws = ws;
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({
+      type: 'join',
+      nickname: mpState.nickname,
+      apiSettings: {
+        provider: mpState.provider,
+        model: mpState.model,
+        apiKey: mpState.apiKey,
+      }
+    }));
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    handleMultiplayerMessage(data);
+  };
+
+  ws.onclose = () => {
+    if (mpState.active) {
+      // Unexpected disconnect during game
+      mpState.active = false;
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.error('WebSocket error:', err);
+  };
+}
+
+function handleMultiplayerMessage(data) {
+  switch (data.type) {
+    case 'waiting': {
+      const statusEl = document.getElementById('lobby-status');
+      if (statusEl) statusEl.textContent = '상대를 찾고 있습니다...';
+      break;
+    }
+
+    case 'matched': {
+      mpState.opponentNickname = data.opponent;
+      mpState.mySide = data.yourSide;
+      mpState.active = true;
+
+      // Show matched UI
+      document.getElementById('lobby-content').innerHTML = `
+        <div class="lobby-matched">
+          <div class="lobby-matched-title font-headline">MATCHED!</div>
+          <div class="lobby-vs-row">
+            <span class="lobby-vs-name">${mpState.nickname}</span>
+            <span class="lobby-vs-badge">VS</span>
+            <span class="lobby-vs-name opponent">${data.opponent}</span>
+          </div>
+        </div>
+      `;
+
+      // Setup game for multiplayer
+      setTimeout(() => {
+        document.getElementById('lobby-screen').classList.add('hidden');
+        initMultiplayerGame(data.firstAttacker);
+      }, 2500);
+      break;
+    }
+
+    case 'your_turn': {
+      if (data.action === 'attack') {
+        mpState.myRole = 'attacker';
+        state.phase = 'PLAYER_ATTACK';
+        updateTurnIndicator();
+        setActionMode('attack');
+        setInputEnabled(true);
+        textInput.focus();
+      } else if (data.action === 'defend') {
+        mpState.myRole = 'defender';
+        state.phase = 'PLAYER_DEFEND';
+
+        // Show opponent's attack info
+        addLog(`⚖ 심판: 공격력 <span class="score">${data.atkScore}</span> (${data.atkComment}) — 방어하세요!`);
+
+        updateTurnIndicator();
+        setActionMode('defend');
+        setInputEnabled(true);
+        textInput.focus();
+      }
+      break;
+    }
+
+    case 'opponent_turn': {
+      mpState.myRole = null;
+      turnIndicator.className = 'pc-turn';
+      turnIndicator.textContent = data.message || "OPPONENT'S TURN";
+      setInputEnabled(false);
+      break;
+    }
+
+    case 'status': {
+      turnIndicator.className = 'animating';
+      turnIndicator.textContent = data.message;
+      break;
+    }
+
+    case 'attack_submitted': {
+      // Show attack speech bubble
+      const isMyAttack = data.nickname === mpState.nickname;
+      const who = isMyAttack ? 'player' : 'pc';
+      showSpeechBubble(data.text, who);
+      state.turn++;
+      addLog(`<span class="turn-num">TURN ${state.turn}</span><br>
+        <span class="attacker ${who}">${data.nickname}</span> 공격: <span class="speech">"${data.text}"</span>`);
+      break;
+    }
+
+    case 'defend_submitted': {
+      const isMyDefend = data.nickname === mpState.nickname;
+      const who = isMyDefend ? 'player' : 'pc';
+      showSpeechBubble(data.text, who);
+      addLog(`<span class="attacker ${who}">${data.nickname}</span> 방어: <span class="speech">"${data.text}"</span>`);
+      break;
+    }
+
+    case 'round_result': {
+      const {
+        atkScore, atkComment, defScore, defComment, damage,
+        attackerNickname, defenderNickname,
+        attackerKey, defenderKey, p1HP, p2HP, turn
+      } = data;
+
+      addLog(`⚖ 심판 판정 — 공격력 <span class="score">${atkScore}</span> (${atkComment}) vs 방어력 <span class="score">${defScore}</span> (${defComment})
+        → 데미지 <span class="damage">${damage}</span>`);
+
+      // Determine HP mapping: if I'm on the left side, I'm P1
+      if (mpState.mySide === 'left') {
+        state.playerHP = p1HP;
+        state.pcHP = p2HP;
+      } else {
+        state.playerHP = p2HP;
+        state.pcHP = p1HP;
+      }
+      updateHP();
+
+      // Determine who attacked from my perspective
+      const iAttacked = attackerNickname === mpState.nickname;
+      const isDefenderMe = defenderNickname === mpState.nickname;
+
+      if (damage > 0) showDamagePopup(damage, isDefenderMe);
+
+      // Play animations
+      if (iAttacked) {
+        playDefendAnimation(pcMesh);
+        playAttackAnimation(playerMesh, PLAYER_POS, PC_POS, pcMesh, true, damage, () => {});
+      } else {
+        playDefendAnimation(playerMesh);
+        playAttackAnimation(pcMesh, PC_POS, PLAYER_POS, playerMesh, false, damage, () => {});
+      }
+      break;
+    }
+
+    case 'game_over': {
+      const iWon = data.winner === mpState.nickname;
+      setTimeout(() => {
+        gameOverTitle.textContent = iWon ? 'YOU WIN!' : 'YOU LOSE';
+        gameOverTitle.className = iWon ? 'win' : 'lose';
+        gameOverSub.textContent = iWon
+          ? `${data.loser}을(를) ${state.turn}턴 만에 격파!`
+          : `${data.winner}에게 ${state.turn}턴에서 패배...`;
+        gameOverEl.classList.add('visible');
+        setInputEnabled(false);
+      }, 1500);
+      break;
+    }
+
+    case 'opponent_disconnected': {
+      mpState.active = false;
+      gameOverTitle.textContent = 'OPPONENT LEFT';
+      gameOverTitle.className = 'win';
+      gameOverSub.textContent = `${mpState.opponentNickname}이(가) 도주했습니다!`;
+      gameOverEl.classList.add('visible');
+      setInputEnabled(false);
+      break;
+    }
+  }
+}
+
+function initMultiplayerGame(isFirstAttacker) {
+  // Reset game state
+  state.turn = 0;
+  state.phase = isFirstAttacker ? 'PLAYER_ATTACK' : 'PC_ATTACK';
+  state.playerHP = MAX_HP;
+  state.pcHP = MAX_HP;
+  state.animating = false;
+  state.pendingPCAttack = null;
+  updateHP();
+  setActionMode('attack');
+  setInputEnabled(false);
+  logPanel.innerHTML = `<div class="log-entry">
+    <span style="color:#ffcc00;">⚔ PvP BATTLE ⚔</span><br>
+    <span style="color:#4fa4ff;">${mpState.nickname}</span> vs <span style="color:#ff4f4f;">${mpState.opponentNickname}</span>
+  </div>`;
+
+  // Update HP labels with nicknames
+  document.querySelector('.hp-label.player').textContent = mpState.nickname;
+  document.querySelector('.hp-label.pc').textContent = mpState.opponentNickname;
+
+  playerMesh.position.copy(PLAYER_POS);
+  pcMesh.position.copy(PC_POS);
+
+  if (assetsLoaded) {
+    playIntroSequence();
+  } else {
+    document.getElementById('loading-screen').style.display = 'flex';
+  }
+}
+
+function handleAction() {
+  if (state.animating) return;
+
+  if (mpState.active) {
+    // Multiplayer mode
+    const text = textInput.value.trim();
+    if (!text) return;
+    textInput.value = '';
+    setInputEnabled(false);
+
+    if (mpState.myRole === 'attacker') {
+      mpState.ws.send(JSON.stringify({ type: 'attack', text }));
+      turnIndicator.className = 'animating';
+      turnIndicator.textContent = '⚖ 심판 채점 중...';
+    } else if (mpState.myRole === 'defender') {
+      mpState.ws.send(JSON.stringify({ type: 'defend', text }));
+      turnIndicator.className = 'animating';
+      turnIndicator.textContent = '⚖ 심판 판정 중...';
+    }
+  } else {
+    // Single-player mode (original)
+    if (state.phase === 'PLAYER_ATTACK') handlePlayerAttack();
+    else if (state.phase === 'PLAYER_DEFEND') handlePlayerDefend();
+  }
+}
+
+// Bind event listeners
+btnAttack.addEventListener('click', handleAction);
+btnDefend.addEventListener('click', handleAction);
+textInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') handleAction();
+});
+
+function restartGameMP() {
+  if (mpState.active) {
+    mpState.active = false;
+    if (mpState.ws) { mpState.ws.close(); mpState.ws = null; }
+  }
+  // Reset HP labels
+  document.querySelector('.hp-label.player').textContent = 'PLAYER';
+  document.querySelector('.hp-label.pc').textContent = 'OPPONENT';
+
+  setSettingsButtonVisible(true);
+  gameOverEl.classList.remove('visible');
+  document.getElementById('mode-screen').classList.remove('hidden');
+  state.turn = 0;
+  state.phase = 'PLAYER_ATTACK';
+  state.playerHP = MAX_HP;
+  state.pcHP = MAX_HP;
+  state.animating = false;
+  state.pendingPCAttack = null;
+  updateHP();
+  updateTurnIndicator();
+  setActionMode('attack');
+  setInputEnabled(false);
+  logPanel.innerHTML = '<div class="log-entry"><span style="color:#ffcc00;">⚔ AGARI FIGHTERS ⚔</span><br><span style="color:#888;">새 라운드 시작!</span></div>';
+  playerMesh.position.copy(PLAYER_POS);
+  pcMesh.position.copy(PC_POS);
+}
+// Replace restartGame reference on the button
+document.getElementById('restart-btn').onclick = restartGameMP;
+</script>
+</body>
+</html>
