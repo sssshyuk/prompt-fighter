@@ -1144,30 +1144,269 @@
   }
   .lobby-cancel-btn:hover { border-color: var(--cl-secondary); background: rgba(255,113,107,.1); }
 
-  /* matched overlay */
-  .lobby-matched {
-    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  /* ── MATCHED SCREEN (cinematic VS) ── */
+  #matched-screen {
+    position: fixed; inset: 0; z-index: 59;
+    background: #0d0e13; overflow: hidden;
   }
-  .lobby-matched-title {
+  #matched-screen.hidden { display: none; }
+
+  /* ticker */
+  .match-ticker {
+    position: absolute; top: 0; left: 0; width: 100%; z-index: 60;
+    height: 32px; background: #000; display: flex; align-items: center;
+    border-bottom: 1px solid rgba(71,70,89,.2); overflow: hidden;
+  }
+  .match-ticker-inner {
+    display: flex; white-space: nowrap; gap: 48px; padding: 0 16px;
+    animation: tickerScroll 20s linear infinite;
+  }
+  @keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .match-ticker-item {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 48px; font-weight: 900; letter-spacing: .1em;
-    color: var(--cl-tertiary); text-transform: uppercase;
-    text-shadow: 0 0 30px rgba(255,221,124,.6);
-    animation: matchPulse 0.6s ease-out;
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
   }
-  @keyframes matchPulse {
-    0% { transform: scale(0.5); opacity: 0; }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); opacity: 1; }
+  .match-ticker-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* header */
+  .match-header {
+    position: absolute; top: 32px; left: 0; width: 100%; z-index: 50;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px;
   }
-  .lobby-vs-row {
+  .match-header-brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px; font-weight: 900; font-style: italic;
+    letter-spacing: -.02em; color: #ff9063;
+  }
+  .match-header-right {
     display: flex; align-items: center; gap: 24px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 24px; font-weight: 900; letter-spacing: .1em;
   }
-  .lobby-vs-name { color: var(--cl-primary); }
-  .lobby-vs-name.opponent { color: var(--cl-secondary); }
-  .lobby-vs-badge { color: var(--cl-tertiary); font-size: 32px; }
+  .match-header-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; letter-spacing: .2em; color: #888; text-transform: uppercase;
+  }
+  .match-header-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px; font-weight: 700; color: #4da0ff;
+  }
+
+  /* background */
+  .match-bg {
+    position: absolute; inset: 0; z-index: 0;
+  }
+  .match-bg-glow {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(255,144,99,.1), transparent 70%);
+  }
+  .match-bg-img {
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: .4; filter: grayscale(1) contrast(1.25) blur(2px);
+    transform: scale(1.1);
+  }
+
+  /* VS overlay */
+  .match-vs-overlay {
+    position: absolute; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .match-vs-bg {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(8rem, 15vw, 12rem); font-weight: 900; font-style: italic;
+    letter-spacing: -.05em; line-height: 1;
+    color: transparent; background: linear-gradient(to bottom, #fff, #666);
+    -webkit-background-clip: text; background-clip: text;
+    opacity: .1;
+    text-shadow: 2px 0 #4da0ff, -2px 0 #ff7162;
+  }
+  .match-vs-badge {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) skewX(-12deg);
+    padding: 8px 40px; background: #ff9063;
+    box-shadow: 0 0 40px rgba(255,144,99,.5);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(28px, 4vw, 40px); font-weight: 900;
+    color: #571b00; text-transform: uppercase;
+    animation: matchBadgeIn .6s ease-out;
+  }
+  @keyframes matchBadgeIn {
+    0% { transform: translate(-50%, -50%) skewX(-12deg) scale(0); opacity: 0; }
+    60% { transform: translate(-50%, -50%) skewX(-12deg) scale(1.15); }
+    100% { transform: translate(-50%, -50%) skewX(-12deg) scale(1); opacity: 1; }
+  }
+  .match-vs-sub {
+    position: absolute; top: calc(50% + 36px); left: 50%; transform: translateX(-50%);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .4em;
+    color: #ff793f; text-transform: uppercase;
+    margin-top: 16px;
+  }
+
+  /* player panels */
+  .match-players {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex;
+  }
+  .match-player-side {
+    flex: 1; position: relative; display: flex; align-items: center; overflow: hidden;
+  }
+  .match-player-side.left { justify-content: flex-start; }
+  .match-player-side.right { justify-content: flex-end; }
+
+  .match-portrait {
+    position: absolute; inset: 0; overflow: hidden;
+  }
+  .match-portrait img {
+    width: 100%; height: 100%; object-fit: cover; object-position: center;
+    opacity: .8; mix-blend-mode: lighten;
+    transition: transform 1s;
+  }
+  .match-player-side.left .match-portrait img { transform: translateX(-10%); }
+  .match-player-side.right .match-portrait img { transform: translateX(10%); }
+  .match-player-side:hover .match-portrait img { transform: scale(1.05); }
+  .match-portrait-grad-l {
+    position: absolute; inset: 0;
+    background: linear-gradient(to right, #0d0e13, transparent);
+  }
+  .match-portrait-grad-r {
+    position: absolute; inset: 0;
+    background: linear-gradient(to left, #0d0e13, transparent);
+  }
+
+  /* player card */
+  .match-card {
+    position: relative; z-index: 5;
+  }
+  .match-card.left { margin-left: 64px; }
+  .match-card.right { margin-right: 64px; text-align: right; }
+
+  .match-card-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+  }
+  .match-card.left .match-card-label { color: #4da0ff; }
+  .match-card.right .match-card-label { color: #ff9063; }
+
+  .match-card-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(36px, 5vw, 60px); font-weight: 900; font-style: italic;
+    letter-spacing: -.02em; color: #fff; text-transform: uppercase;
+    line-height: 1.1; margin-top: 4px;
+  }
+
+  .match-card-stats {
+    margin-top: 16px; padding: 20px;
+    background: rgba(13, 14, 19, .7); backdrop-filter: blur(12px);
+    max-width: 360px;
+  }
+  .match-card.left .match-card-stats {
+    border-left: 4px solid #4da0ff;
+    transform: skewX(-12deg);
+    box-shadow: 0 0 20px rgba(77,160,255,.15);
+  }
+  .match-card.right .match-card-stats {
+    border-right: 4px solid #ff9063; margin-left: auto;
+    transform: skewX(12deg);
+    box-shadow: 0 0 20px rgba(255,144,99,.15);
+  }
+  .match-card-stats-inner {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .match-card.left .match-card-stats-inner { transform: skewX(12deg); }
+  .match-card.right .match-card-stats-inner { transform: skewX(-12deg); }
+
+  .match-stat-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; letter-spacing: .2em; color: #888; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .match-stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight: 700;
+  }
+  .match-stat-value.blue { color: #4da0ff; }
+  .match-stat-value.orange { color: #ff9063; }
+  .match-stat-value.white { color: #f7f5fd; }
+
+  .match-stat-bar {
+    height: 3px; background: #24252d; margin-top: 16px; position: relative;
+  }
+  .match-card.left .match-stat-bar { transform: skewX(12deg); }
+  .match-card.right .match-stat-bar { transform: skewX(-12deg); }
+  .match-stat-bar-fill {
+    position: absolute; top: 0; bottom: 0;
+  }
+  .match-stat-bar-fill.blue {
+    left: 0; background: #4da0ff; box-shadow: 0 0 10px rgba(77,160,255,.8);
+  }
+  .match-stat-bar-fill.orange {
+    right: 0; background: #ff9063; box-shadow: 0 0 10px rgba(255,144,99,.8);
+  }
+
+  /* bottom bar */
+  .match-bottom {
+    position: absolute; bottom: 0; left: 0; width: 100%; z-index: 50;
+    height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(13,14,19,.8); backdrop-filter: blur(16px);
+    box-shadow: 0 -8px 24px rgba(255,144,99,.15);
+  }
+  .match-bottom-row {
+    display: flex; align-items: center; gap: 32px; margin-bottom: 10px;
+  }
+  .match-bottom-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; letter-spacing: .5em; color: #666; text-transform: uppercase;
+  }
+  .match-bottom-status {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .match-bottom-status-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px; font-weight: 700; letter-spacing: .2em;
+    color: #ff9063; text-transform: uppercase;
+  }
+  .match-progress {
+    width: 400px; height: 4px; background: #24252d; position: relative; overflow: hidden;
+  }
+  .match-progress-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: #ff9063; box-shadow: 0 0 15px rgba(255,144,99,.6);
+    animation: matchProgressAnim 3s ease-in-out forwards;
+  }
+  @keyframes matchProgressAnim {
+    0% { width: 0%; }
+    100% { width: 100%; }
+  }
+  .match-bottom-sub {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px; letter-spacing: .3em; color: #666; text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* hud corners */
+  .match-hud-tl {
+    position: absolute; top: 96px; left: 24px; z-index: 40;
+  }
+  .match-hud-tr {
+    position: absolute; top: 96px; right: 24px; z-index: 40;
+    display: flex; flex-direction: column; align-items: flex-end;
+  }
+  .match-hud-bar-v { width: 3px; height: 32px; }
+  .match-hud-bar-h { height: 3px; width: 32px; }
+  .match-hud-bar-blue { background: #4da0ff; }
+  .match-hud-bar-orange { background: #ff9063; }
+
+  /* grid overlay */
+  .match-grid-overlay {
+    position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: .03;
+    background-image: linear-gradient(to right, #fff 1px, transparent 1px),
+                      linear-gradient(to bottom, #fff 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
 
   /* ── Speech Bubble ── */
   .speech-bubble {
@@ -1385,6 +1624,127 @@
     </div>
   </div>
 
+</div>
+
+<!-- ═══════════ MATCHED SCREEN (cinematic VS) ═══════════ -->
+<div id="matched-screen" class="hidden">
+  <!-- Ticker -->
+  <div class="match-ticker">
+    <div class="match-ticker-inner">
+      <span class="match-ticker-item" style="color:#ff9063;"><span class="match-ticker-dot" style="background:#ff9063;"></span>LIVE ARENA SECTOR 7: MATCH DETECTED</span>
+      <span class="match-ticker-item" style="color:#4da0ff;"><span class="match-ticker-dot" style="background:#4da0ff;"></span>REGIONAL SERVER STABLE</span>
+      <span class="match-ticker-item" style="color:#ff7162;"><span class="match-ticker-dot" style="background:#ff7162;"></span>RANKED SEASON IV ACTIVE</span>
+      <span class="match-ticker-item" style="color:#ff9063;"><span class="match-ticker-dot" style="background:#ff9063;"></span>LIVE ARENA SECTOR 7: MATCH DETECTED</span>
+      <span class="match-ticker-item" style="color:#4da0ff;"><span class="match-ticker-dot" style="background:#4da0ff;"></span>REGIONAL SERVER STABLE</span>
+      <span class="match-ticker-item" style="color:#ff7162;"><span class="match-ticker-dot" style="background:#ff7162;"></span>RANKED SEASON IV ACTIVE</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="match-header">
+    <div class="match-header-brand">AGARI FIGHTERS</div>
+    <div class="match-header-right">
+      <div style="text-align:right;">
+        <div class="match-header-label">Encryption Status</div>
+        <div class="match-header-value">SECURE CHANNEL</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="match-bg">
+    <div class="match-bg-glow"></div>
+    <img class="match-bg-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuEIwEBAsRAtt4-gY5O8LMhFSM1oX3HYZxNj7F09D7p8XqEBUb9kuOE1s9AMWPAq4KXa48UU24xroHwCji3Sz0_Wc4j-crz91byVlWeRax3SnzEE4ybsEA25T74ejJEaps2Kk1pvqilH9COcbaNcLvcG5szhpvDI4Py9Hf196KYjUPa-FCz7qSIAbcYM4IZJl4I5-x0qarC-DpyveoCdjcf3xDB_I4uJKvTWW1mnnIXXZlSMT7kyoHTbflvreRobT8MD68xqT0Uv0" alt="" />
+  </div>
+
+  <!-- VS Overlay -->
+  <div class="match-vs-overlay">
+    <div style="position:relative;">
+      <div class="match-vs-bg">VS</div>
+      <div class="match-vs-badge">MATCHED!</div>
+      <div class="match-vs-sub">Synchronizing Neural Link</div>
+    </div>
+  </div>
+
+  <!-- Players -->
+  <div class="match-players">
+    <!-- Left Player -->
+    <div class="match-player-side left">
+      <div class="match-portrait">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7Xp4k_oQtr4UFyQ7hK20hJGlPrYy_jkyHPhp6xcC5oQHuozJEIGkX5o9dsYxdlRwixmg8adYhtCs2z5zcvIAW0Kg9Z4qyyrrSuiWMdSPqdLy0EEoCjbHfuX4hxWFQ63mqEw6py-6VHt8_rWHOVIq5rG4Uq21S5qz22YlztmTJaqmcGnLNZaMi6xz2DMdIIg7je913PnqRBfc5RTKmEzvLLjBU6ueNimAZHm3pFmrTRF2nGJHeuUeGwU-WqovCjmZRfRWlSrig344" alt="" />
+        <div class="match-portrait-grad-l"></div>
+      </div>
+      <div class="match-card left">
+        <div class="match-card-label">PLAYER 01</div>
+        <div class="match-card-name" id="match-p1-name">PLAYER</div>
+        <div class="match-card-stats">
+          <div class="match-card-stats-inner">
+            <div>
+              <div class="match-stat-label">Status</div>
+              <div class="match-stat-value blue">READY</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="match-stat-label">Engine</div>
+              <div class="match-stat-value white" id="match-p1-engine">GEMINI</div>
+            </div>
+          </div>
+          <div class="match-stat-bar"><div class="match-stat-bar-fill blue" style="width:72%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Player -->
+    <div class="match-player-side right">
+      <div class="match-portrait">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-o3AEwyMJtPpBv-7-xrKGCYlNOOglc2iAByjD-kvplTeOwj_k2XK7Cfd1aCu58XPLjCMLZ7tugWpVPYbMGDUPVYhKcoJYp7ezsWBn9Qpf76CD8AcYVBqag1kxrkwLOA_-dVFEcW9xDm52nkEPSzisYO-mnchajCV93DC4UK-4vCcM-pmwI_4aqETqIsYfV_CtmUu6bKkiiYJIZLeUga1aRKawZ4S0CzPEjE-gKtNZdDj5rMaj9gv2CHxbO_46Mvf28HuQ2o1SYjU" alt="" />
+        <div class="match-portrait-grad-r"></div>
+      </div>
+      <div class="match-card right">
+        <div class="match-card-label">PLAYER 02</div>
+        <div class="match-card-name" id="match-p2-name">OPPONENT</div>
+        <div class="match-card-stats">
+          <div class="match-card-stats-inner">
+            <div style="text-align:left;">
+              <div class="match-stat-label">Status</div>
+              <div class="match-stat-value orange">READY</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="match-stat-label">Engine</div>
+              <div class="match-stat-value white" id="match-p2-engine">GEMINI</div>
+            </div>
+          </div>
+          <div class="match-stat-bar"><div class="match-stat-bar-fill orange" style="width:84%;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="match-bottom">
+    <div class="match-bottom-row">
+      <span class="match-bottom-label">Arena: Neo-Tokyo</span>
+      <div class="match-bottom-status">
+        <span class="material-symbols-outlined" style="color:#ff9063;font-size:16px;">wifi_tethering</span>
+        <span class="match-bottom-status-text">TRANSMISSION ACTIVE</span>
+      </div>
+      <span class="match-bottom-label" id="match-spectators">SPECTATORS: 0</span>
+    </div>
+    <div class="match-progress"><div class="match-progress-fill"></div></div>
+    <div class="match-bottom-sub">Loading Combat Assets...</div>
+  </div>
+
+  <!-- HUD Corners -->
+  <div class="match-hud-tl">
+    <div class="match-hud-bar-v match-hud-bar-blue"></div>
+    <div class="match-hud-bar-h match-hud-bar-blue" style="margin-top:3px;"></div>
+  </div>
+  <div class="match-hud-tr">
+    <div class="match-hud-bar-v match-hud-bar-orange"></div>
+    <div class="match-hud-bar-h match-hud-bar-orange" style="margin-top:3px;"></div>
+  </div>
+
+  <!-- Grid Overlay -->
+  <div class="match-grid-overlay"></div>
 </div>
 
 <!-- ═══════════ NICKNAME SCREEN (Multiplayer) ═══════════ -->
@@ -2977,23 +3337,23 @@ function handleMultiplayerMessage(data) {
       mpState.mySide = data.yourSide;
       mpState.active = true;
 
-      // Show matched UI
-      document.getElementById('lobby-content').innerHTML = `
-        <div class="lobby-matched">
-          <div class="lobby-matched-title font-headline">MATCHED!</div>
-          <div class="lobby-vs-row">
-            <span class="lobby-vs-name">${mpState.nickname}</span>
-            <span class="lobby-vs-badge">VS</span>
-            <span class="lobby-vs-name opponent">${data.opponent}</span>
-          </div>
-        </div>
-      `;
+      // Hide lobby, show cinematic matched screen
+      document.getElementById('lobby-screen').classList.add('hidden');
+      const matchedScreen = document.getElementById('matched-screen');
 
-      // Setup game for multiplayer
+      // Populate player info
+      document.getElementById('match-p1-name').textContent = mpState.nickname;
+      document.getElementById('match-p2-name').textContent = data.opponent;
+      document.getElementById('match-p1-engine').textContent = clientApiSettings.provider.toUpperCase() + ' / ' + clientApiSettings.model;
+      document.getElementById('match-p2-engine').textContent = data.opponentEngine || 'UNKNOWN';
+
+      matchedScreen.classList.remove('hidden');
+
+      // Transition to game after progress bar animation (~3.5s)
       setTimeout(() => {
-        document.getElementById('lobby-screen').classList.add('hidden');
+        matchedScreen.classList.add('hidden');
         initMultiplayerGame(data.firstAttacker);
-      }, 2500);
+      }, 3500);
       break;
     }
 

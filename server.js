@@ -278,23 +278,25 @@ async function handleWS(ws, data) {
         sendJSON(room.p1.ws, {
           type: 'matched',
           opponent: room.p2.nickname,
+          opponentEngine: room.p2.api.provider.toUpperCase() + ' / ' + room.p2.api.model,
           yourSide: 'left',
           firstAttacker: true
         });
         sendJSON(room.p2.ws, {
           type: 'matched',
           opponent: room.p1.nickname,
+          opponentEngine: room.p1.api.provider.toUpperCase() + ' / ' + room.p1.api.model,
           yourSide: 'right',
           firstAttacker: false
         });
 
-        // Start game after intro sequence
+        // Start game after matched screen + intro sequence
         setTimeout(() => {
           if (!rooms.has(roomId)) return;
           room.state.phase = 'WAITING_ATTACK';
           sendJSON(room.p1.ws, { type: 'your_turn', action: 'attack' });
           sendJSON(room.p2.ws, { type: 'opponent_turn', message: `${room.p1.nickname}이(가) 공격 준비 중...` });
-        }, 4000);
+        }, 7000);
 
       } else {
         waitingPlayer = ws;
