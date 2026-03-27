@@ -311,6 +311,18 @@ async function handleWS(ws, data) {
       break;
     }
 
+    case 'surrender': {
+      const room = rooms.get(ws.roomId);
+      if (!room) return;
+      const isP1 = room.p1.ws === ws;
+      const winner = isP1 ? room.p2 : room.p1;
+      const loser = isP1 ? room.p1 : room.p2;
+      sendJSON(winner.ws, { type: 'opponent_surrendered', loser: loser.nickname });
+      rooms.delete(room.id);
+      console.log(`[ROOM ${room.id}] ${loser.nickname} surrendered, ${winner.nickname} wins`);
+      break;
+    }
+
     case 'attack': {
       const room = rooms.get(ws.roomId);
       if (!room || room.state.phase !== 'WAITING_ATTACK') return;

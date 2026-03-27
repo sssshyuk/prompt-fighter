@@ -720,6 +720,13 @@
   #btn-attack:hover:not(:disabled) { background: #ff2020; transform: scale(1.05); box-shadow: 0 0 25px rgba(255,79,79,.6); }
   #btn-defend { background: #4fa4ff; color: #fff; box-shadow: 0 0 15px rgba(79,164,255,.4); }
   #btn-defend:hover:not(:disabled) { background: #2080ff; transform: scale(1.05); box-shadow: 0 0 25px rgba(79,164,255,.6); }
+  #btn-surrender {
+    padding: 12px 16px; font-size: 12px; font-weight: 700;
+    background: rgba(255,255,255,.08); color: #888;
+    border: 1px solid #444; border-radius: 8px; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 1px; transition: all .2s;
+  }
+  #btn-surrender:hover { background: rgba(255,79,79,.15); color: #ff4f4f; border-color: #ff4f4f; }
 
   /* ── Damage Popup ── */
   .damage-popup {
@@ -1609,6 +1616,7 @@
   <input type="text" id="text-input" placeholder="공격 대사를 입력하세요..." maxlength="200" />
   <button class="action-btn" id="btn-attack">⚔ 공격</button>
   <button class="action-btn" id="btn-defend" style="display:none;">🛡 방어</button>
+  <button id="btn-surrender" onclick="surrender()">GG</button>
 </div>
 
 <!-- Game Over Overlay -->
@@ -3096,6 +3104,16 @@ function handleMultiplayerMessage(data) {
       break;
     }
 
+    case 'opponent_surrendered': {
+      mpState.active = false;
+      gameOverTitle.textContent = 'YOU WIN!';
+      gameOverTitle.className = 'win';
+      gameOverSub.textContent = `${data.loser}이(가) 항복했습니다!`;
+      gameOverEl.classList.add('visible');
+      setInputEnabled(false);
+      break;
+    }
+
     case 'opponent_disconnected': {
       mpState.active = false;
       gameOverTitle.textContent = 'OPPONENT LEFT';
@@ -3161,6 +3179,30 @@ function handleAction() {
     // Single-player mode (original)
     if (state.phase === 'PLAYER_ATTACK') handlePlayerAttack();
     else if (state.phase === 'PLAYER_DEFEND') handlePlayerDefend();
+  }
+}
+
+function surrender() {
+  if (mpState.active) {
+    // Multiplayer: notify server and disconnect
+    if (mpState.ws) {
+      mpState.ws.send(JSON.stringify({ type: 'surrender' }));
+      mpState.ws.close();
+      mpState.ws = null;
+    }
+    mpState.active = false;
+    gameOverTitle.textContent = 'SURRENDERED';
+    gameOverTitle.className = 'lose';
+    gameOverSub.textContent = '항복했습니다...';
+    gameOverEl.classList.add('visible');
+    setInputEnabled(false);
+  } else {
+    // Single-player: just end game
+    gameOverTitle.textContent = 'SURRENDERED';
+    gameOverTitle.className = 'lose';
+    gameOverSub.textContent = `${state.turn}턴에서 항복...`;
+    gameOverEl.classList.add('visible');
+    setInputEnabled(false);
   }
 }
 
