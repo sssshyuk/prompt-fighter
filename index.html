@@ -1689,8 +1689,14 @@ function selectMode(mode) {
   document.getElementById('mode-screen').classList.add('hidden');
   if (mode === 'human') {
     document.getElementById('nickname-screen').classList.remove('hidden');
+    // Restore saved settings
+    const saved = clientApiSettings;
+    nickSelectProvider(saved.provider);
+    document.getElementById('nick-key-input').value = saved.apiKey || '';
+    // Restore saved nickname
+    const savedNick = localStorage.getItem('agari_nickname') || '';
+    document.getElementById('nick-input').value = savedNick;
     document.getElementById('nick-input').focus();
-    nickSelectProvider('gemini');
   } else {
     document.getElementById('difficulty-screen').classList.remove('hidden');
   }
@@ -1698,7 +1704,7 @@ function selectMode(mode) {
 
 function selectDifficulty(diff) {
   if (!clientApiSettings.apiKey) {
-    alert('AI 설정에서 API Key를 먼저 입력해주세요! (우측 상단 AI 설정 버튼)');
+    openSettings();
     return;
   }
   state.difficulty = diff;
@@ -1716,11 +1722,18 @@ function getDiff() { return DIFFICULTY[state.difficulty]; }
 // ═══════════════════════════════════════════════════════
 // CLIENT-SIDE API SETTINGS (used for single-player)
 // ═══════════════════════════════════════════════════════
-let clientApiSettings = {
-  provider: 'gemini',
-  model: 'gemini-2.5-flash',
-  apiKey: '',
-};
+// Load saved settings from localStorage (convenience for returning users)
+let clientApiSettings = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('agari_api_settings'));
+    if (saved && saved.provider && saved.model && saved.apiKey) return saved;
+  } catch(e) {}
+  return { provider: 'gemini', model: 'gemini-2.5-flash', apiKey: '' };
+})();
+
+function saveApiSettingsToStorage() {
+  localStorage.setItem('agari_api_settings', JSON.stringify(clientApiSettings));
+}
 
 function getApiPayload(extra) {
   return { ...extra, provider: clientApiSettings.provider, model: clientApiSettings.model, apiKey: clientApiSettings.apiKey };
@@ -2791,6 +2804,7 @@ function saveSettings() {
   clientApiSettings.provider = provider;
   clientApiSettings.model = model;
   if (apiKey) clientApiSettings.apiKey = apiKey;
+  saveApiSettingsToStorage();
 
   updateSettingsStatus(!!clientApiSettings.apiKey);
   btn.textContent = 'SAVED!';
@@ -2876,6 +2890,13 @@ function startMatchmaking() {
   mpState.nickname = nickname;
   mpState.apiKey = apiKey;
   mpState.model = document.getElementById('nick-model-select').value;
+
+  // Save for convenience
+  localStorage.setItem('agari_nickname', nickname);
+  clientApiSettings.provider = mpState.provider;
+  clientApiSettings.model = mpState.model;
+  clientApiSettings.apiKey = apiKey;
+  saveApiSettingsToStorage();
 
   document.getElementById('nickname-screen').classList.add('hidden');
   document.getElementById('lobby-screen').classList.remove('hidden');

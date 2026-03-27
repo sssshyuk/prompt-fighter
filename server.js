@@ -42,7 +42,7 @@ async function callGeminiWith(systemPrompt, userPrompt, model, apiKey) {
     const anyText = parts.find(p => p.text);
     if (anyText) return anyText.text;
   }
-  console.error('[GEMINI ERROR]', JSON.stringify(data).slice(0, 500));
+  console.error('[GEMINI ERROR] No valid response');
   throw new Error('No valid response from Gemini');
 }
 
@@ -63,7 +63,7 @@ async function callOpenAIWith(systemPrompt, userPrompt, model, apiKey) {
   });
   const data = await resp.json();
   if (data.choices && data.choices[0]) return data.choices[0].message.content;
-  console.error('[OPENAI ERROR]', JSON.stringify(data).slice(0, 500));
+  console.error('[OPENAI ERROR] No valid response');
   throw new Error('No valid response from OpenAI');
 }
 
@@ -85,7 +85,7 @@ async function callAnthropicWith(systemPrompt, userPrompt, model, apiKey) {
   });
   const data = await resp.json();
   if (data.content && data.content[0]) return data.content[0].text;
-  console.error('[ANTHROPIC ERROR]', JSON.stringify(data).slice(0, 500));
+  console.error('[ANTHROPIC ERROR] No valid response');
   throw new Error('No valid response from Anthropic');
 }
 
@@ -143,13 +143,15 @@ async function judgeText(text, type, provider, model, apiKey) {
 
 // ── API Route Handlers (single-player) ──
 // Client sends { provider, model, apiKey } with every request
+// SECURITY: apiKey is NEVER logged, stored, or exposed
 async function handleAPI(req, res, urlPath) {
   let body = '';
   req.on('data', chunk => body += chunk);
   req.on('end', async () => {
     try {
       const params = JSON.parse(body);
-      const { provider, model, apiKey } = params;
+      const { provider, model, apiKey, ...safeParams } = params;
+      console.log(`[API] ${urlPath} provider=${provider} model=${model}`);
       let result;
 
       if (urlPath === '/api/judge') {
